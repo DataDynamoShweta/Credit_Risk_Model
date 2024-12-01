@@ -22,7 +22,7 @@ The dataset used for this project is sourced from Kaggle. It contains informatio
 
 2. **Exploratory Data Analysis (EDA)**:
    - 📊 Visualize distributions of key features.
-   - 🔗 Analyze correlations between features and the target variable (loan status).
+   - 🔗 Analyze correlations between features and the target variable.
 
 3. **Model Development**:
    - 📚 Split the data into training and testing sets.

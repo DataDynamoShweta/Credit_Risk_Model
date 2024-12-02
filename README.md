@@ -5,6 +5,7 @@ This project aims to develop a credit risk model scorecard using machine learnin
 
 ## 📂 Data Source
 The dataset used for this project is sourced from Kaggle. It contains information about loan applicants, including their demographic details, financial history, and loan status. The dataset is essential for training and validating the credit risk model.
+[Data files here](https://drive.google.com/file/d/1qJTzScAGdzraDo0H8E8NDnUCmH7pBPB2/view?usp=drive_link)
 
 ### 📝 Dataset Description
 - **Loan Data**: The dataset includes various features such as:

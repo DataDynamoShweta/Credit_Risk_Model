@@ -1,6 +1,8 @@
 """Data contracts used at ingestion and scoring boundaries."""
 from typing import Any
+
 from pydantic import BaseModel, ConfigDict, Field
+
 
 class LoanRecord(BaseModel):
     """Minimal example contract; extend with the features in your approved data dictionary."""

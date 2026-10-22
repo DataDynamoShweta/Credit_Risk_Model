@@ -2,6 +2,7 @@
 import numpy as np
 from sklearn.metrics import roc_auc_score, roc_curve
 
+
 def discrimination(y_true, y_prob, *, bootstrap: int = 0, confidence: float = .95,
                    random_state: int = 42):
     y = np.asarray(y_true).astype(int)

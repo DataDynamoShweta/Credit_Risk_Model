@@ -1,7 +1,8 @@
 """Load a local champion artifact; production deployments can use MLflow registry."""
 import os
-from pathlib import Path
 from functools import lru_cache
+from pathlib import Path
+
 
 @lru_cache(maxsize=1)
 def load_model():

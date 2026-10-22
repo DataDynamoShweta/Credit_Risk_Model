@@ -1,6 +1,7 @@
 """Chronological out-of-time evaluation."""
-from sklearn.metrics import roc_auc_score, brier_score_loss
 import pandas as pd
+from sklearn.metrics import brier_score_loss, roc_auc_score
+
 
 def oot_split(frame: pd.DataFrame, date_column: str, *, test_fraction: float = .2):
     if date_column not in frame:

@@ -1,10 +1,11 @@
 """Optional tree challenger; XGBoost/LightGBM are used only when installed."""
 import pandas as pd
 from sklearn.compose import ColumnTransformer
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
-from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassifier
+
 
 def build_challenger(frame: pd.DataFrame, target: str = "target", algorithm: str = "histgb"):
     if target not in frame:

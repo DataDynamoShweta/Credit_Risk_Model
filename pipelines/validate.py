@@ -1,10 +1,14 @@
 """Run validation against a labelled CSV and write a Markdown report."""
-import argparse, json
+import argparse
+import json
+
 import pandas as pd
-from credit_risk_model.models.champion import ChampionModel
-from credit_risk_model.validation.discrimination import discrimination
-from credit_risk_model.validation.calibration import calibration
+
 from credit_risk_model.governance.report_builder import build_markdown
+from credit_risk_model.models.champion import ChampionModel
+from credit_risk_model.validation.calibration import calibration
+from credit_risk_model.validation.discrimination import discrimination
+
 
 def main():
     p=argparse.ArgumentParser()

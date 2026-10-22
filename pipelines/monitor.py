@@ -1,8 +1,12 @@
 """Scheduled drift job: compare reference and current feature CSV files."""
-import argparse, json
+import argparse
+import json
+
 import pandas as pd
-from credit_risk_model.monitoring.drift import drift_summary
+
 from credit_risk_model.monitoring.alerts import build_alerts
+from credit_risk_model.monitoring.drift import drift_summary
+
 
 def main():
     p=argparse.ArgumentParser()

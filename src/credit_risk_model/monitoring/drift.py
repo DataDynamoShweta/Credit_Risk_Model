@@ -1,5 +1,6 @@
 """Drift reporting; Evidently integration is optional and version-dependent."""
-from ..validation.stability import psi, csi_by_feature
+from ..validation.stability import csi_by_feature
+
 
 def drift_summary(reference, current, *, thresholds=None):
     thresholds = thresholds or {"warning": .1, "critical": .25}

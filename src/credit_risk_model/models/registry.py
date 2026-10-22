@@ -1,6 +1,7 @@
 """Minimal MLflow registry adapter; imports MLflow only when used."""
 import os
 
+
 class ModelRegistry:
     def __init__(self, tracking_uri: str | None = None):
         self.tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI")

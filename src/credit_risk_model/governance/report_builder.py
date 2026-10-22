@@ -1,6 +1,7 @@
 """Generate Markdown validation reports, with optional PDF conversion."""
-from pathlib import Path
 from datetime import datetime, timezone
+from pathlib import Path
+
 from jinja2 import Template
 
 DEFAULT_TEMPLATE = """# Independent Model Validation Report

@@ -1,9 +1,11 @@
-from fastapi import FastAPI, HTTPException
-from api.schemas import PredictRequest, PredictResponse
-from api.model_loader import load_model, model_version
-from api.logging_middleware import AuditLoggingMiddleware
-from credit_risk_model.features.scorecard import probability_to_score
 import uuid
+
+from fastapi import FastAPI, HTTPException
+
+from api.logging_middleware import AuditLoggingMiddleware
+from api.model_loader import load_model, model_version
+from api.schemas import PredictRequest, PredictResponse
+from credit_risk_model.features.scorecard import probability_to_score
 
 app = FastAPI(title="Credit Risk Model Validation Platform", version="0.1.0")
 app.add_middleware(AuditLoggingMiddleware)

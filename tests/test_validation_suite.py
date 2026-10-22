@@ -1,9 +1,10 @@
-import numpy as np
 import pandas as pd
-from credit_risk_model.features.woe_binning import calculate_woe_iv
+
 from credit_risk_model.features.scorecard import probability_to_score
+from credit_risk_model.features.woe_binning import calculate_woe_iv
 from credit_risk_model.validation.calibration import calibration
 from credit_risk_model.validation.oot import oot_split
+
 
 def test_woe_iv_nonnegative():
     x=pd.Series([1,2,3,4,5,6,7,8])

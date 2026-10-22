@@ -1,5 +1,7 @@
 import pandas as pd
-from credit_risk_model.validation.stability import psi, csi_by_feature
+
+from credit_risk_model.validation.stability import csi_by_feature, psi
+
 
 def test_psi_same_distribution_near_zero():
     x = pd.Series([1,2,3,4,5,6,7,8,9,10]*10)

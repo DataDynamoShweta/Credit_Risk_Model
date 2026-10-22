@@ -4,8 +4,10 @@ Bins are quantile-based for numeric features. Monotonicity is assessed and repor
 the implementation does not silently force monotonic bins or claim optimal binning.
 """
 from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
+
 
 @dataclass
 class WoEBinResult:
@@ -20,7 +22,7 @@ def calculate_woe_iv(x: pd.Series, y: pd.Series, *, bins: int = 5,
     data = pd.DataFrame({"x": x, "y": y}).dropna()
     if data.empty or data["y"].nunique() != 2:
         raise ValueError("Need non-empty data and a binary target with both classes")
-    if not set(data["y"].unique()).issubset({0, 1, False, True}):
+    if not set(data["y"].unique()).issubset({0, 1}):
         raise ValueError("Target must be encoded as 0/1")
     if pd.api.types.is_numeric_dtype(data["x"]) and data["x"].nunique() > 1:
         try:

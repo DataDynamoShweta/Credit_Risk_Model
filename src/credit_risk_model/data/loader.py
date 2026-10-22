@@ -1,6 +1,8 @@
 """Small, explicit CSV loading helpers."""
 from pathlib import Path
+
 import pandas as pd
+
 
 def load_csv(path: str | Path, *, target: str | None = None) -> pd.DataFrame:
     path = Path(path)

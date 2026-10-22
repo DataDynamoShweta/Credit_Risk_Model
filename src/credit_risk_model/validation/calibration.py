@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import brier_score_loss, log_loss
 
+
 def calibration(y_true, y_prob, *, groups: int = 10):
     y = np.asarray(y_true).astype(int)
     p = np.clip(np.asarray(y_prob, dtype=float), 1e-8, 1-1e-8)

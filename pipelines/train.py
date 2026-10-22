@@ -1,11 +1,14 @@
 """Train a reproducible demonstration model; accepts a user-supplied CSV."""
 import argparse
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import roc_auc_score
+from sklearn.model_selection import train_test_split
+
 from credit_risk_model.models.champion import ChampionModel
+
 
 def demo_data(n=1200, seed=42):
     rng = np.random.default_rng(seed)

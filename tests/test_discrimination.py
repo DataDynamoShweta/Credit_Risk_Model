@@ -1,5 +1,5 @@
-import numpy as np
 from credit_risk_model.validation.discrimination import discrimination
+
 
 def test_perfect_ranking_has_auc_one():
     result = discrimination([0,0,1,1], [0.1,0.2,0.8,0.9])

@@ -2,6 +2,7 @@
 import numpy as np
 import pandas as pd
 
+
 def _distribution(values, edges):
     values = pd.Series(values).dropna()
     counts = np.histogram(values, bins=edges)[0].astype(float)

@@ -1,6 +1,7 @@
 """Common holdout benchmark for champion and challenger probabilities."""
-from .discrimination import discrimination
 from .calibration import calibration
+from .discrimination import discrimination
+
 
 def benchmark(y_true, predictions: dict[str, object]):
     rows = []

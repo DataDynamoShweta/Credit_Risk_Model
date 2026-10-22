@@ -1,46 +1,86 @@
-# Credit Risk Model Scorecard
+# Credit Risk Model Validation Platform
 
-## 📊 Project Overview
-This project aims to develop a credit risk model scorecard using machine learning techniques. The scorecard will help in evaluating the creditworthiness of loan applicants by analyzing various features related to their financial behavior and history.
+A modular, testable credit-risk scorecard and independent model-validation toolkit designed around the responsibilities in the Skipton Model Validation / Model Risk role. It includes a logistic-regression champion, optional tree-based challenger, scorecard scaling, discrimination/calibration/stability/Out-of-Time (OOT) checks, a FastAPI scoring layer, audit logging, monitoring hooks, and governance reporting.
 
-## 📂 Data Source
-The dataset used for this project is sourced from Kaggle. It contains information about loan applicants, including their demographic details, financial history, and loan status. The dataset is essential for training and validating the credit risk model.
+> **Important:** This repository is an engineering demonstration, not evidence of regulatory approval or compliance. SS1/23 alignment is a design objective; compliance requires documented policies, evidence, independent review, and approval by the relevant institution. Standardised/IRB capital treatment and IFRS 9 requirements depend on model purpose and regulatory context.
 
+## Repository structure
 
-### 📝 Dataset Description
-- **Loan Data**: The dataset includes various features such as:
-  - 👤 Applicant demographics (age, income, etc.)
-  - 💵 Loan details (amount, term, interest rate)
-  - 📉 Financial history (previous defaults, repayment history)
-  - 🏠 Home ownership status
-  - ⚙️ Other relevant attributes
+```text
+credit-risk-model/
+├── src/credit_risk_model/
+│   ├── data/                 # CSV loading and Pydantic contracts
+│   ├── features/             # WoE/IV binning and PDO score scaling
+│   ├── models/               # Champion, optional challenger, MLflow registry
+│   ├── validation/           # Discrimination, calibration, PSI/CSI, OOT, benchmark
+│   ├── monitoring/            # Drift metrics and alert rules
+│   └── governance/           # Markdown/PDF report and model inventory
+├── api/                      # FastAPI serving and decision audit middleware
+├── pipelines/                # Train, validate, monitor entrypoints
+├── reports/                  # Report output and templates
+├── tests/
+├── notebooks/                # Original exploration notebook location
+├── .github/workflows/ci.yml
+├── Dockerfile
+├── docker-compose.yml
+├── pyproject.toml
+└── requirements.txt
+```
 
-## 🔍 Methodology
-1. **Data Preprocessing**: 
-   - 🛠️ Handle missing values and outliers.
-   - 🔄 Encode categorical variables.
-   - 📏 Normalize or standardize numerical features as necessary.
+The Python package lives under `src/credit_risk_model/` (the importable package name), while the top-level `src/` folder remains the library root.
 
-2. **Exploratory Data Analysis (EDA)**:
-   - 📊 Visualize distributions of key features.
-   - 🔗 Analyze correlations between features and the target variable.
+## Quick start
 
-3. **Model Development**:
-   - 📚 Split the data into training and testing sets.
-   - 🤖 Use machine learning algorithms (e.g., Logistic Regression, Decision Trees) to build predictive models.
-   - 📈 Evaluate model performance using metrics like accuracy, precision, recall, and AUC-ROC.
+Python 3.10+ is recommended.
 
-4. **Scorecard Development**:
-   - 📝 Convert the model output into a scorecard format.
-   - 🎯 Assign points to different ranges of predictor variables based on their impact on the probability of default.
+```bash
+python -m venv .venv
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# Windows cmd:       .venv\Scripts\activate.bat
+python -m pip install --upgrade pip
+pip install -e ".[dev]"
+```
 
-5. **Validation**:
-   - ✅ Validate the scorecard using the test dataset.
-   - 🏦 Ensure that the scorecard meets business requirements and regulatory standards.
+Create a small synthetic dataset and train:
 
-## ⚙️ Usage Instructions
-1. 🚀 Clone this repository to your local machine or open it in Kaggle.
-2. 🔧 Ensure you have all necessary libraries installed:
-   ```bash
-   pip install pandas numpy scikit-learn seaborn matplotlib
-   ```
+```bash
+python pipelines/train.py --output-dir artifacts
+python pipelines/validate.py --model artifacts/champion.joblib --report reports/validation_report.md
+uvicorn api.main:app --reload
+```
+
+The API exposes `GET /health`, `GET /model-card`, and `POST /predict`. API payload fields must match the configured feature list. For a real dataset, supply a CSV with a binary target column (default `target`) and numeric/categorical predictors; do not commit sensitive customer data.
+
+## Validation scope
+
+- **Discrimination:** AUROC, Gini, KS; optional bootstrap confidence intervals.
+- **Calibration:** Brier score, log loss, Hosmer–Lemeshow grouping statistic and reliability-curve data.
+- **Stability:** PSI for numeric/categorical distributions and CSI-style feature contribution reporting.
+- **OOT/vintage:** temporal holdout evaluation when a date column is supplied.
+- **Champion–challenger:** common split and comparable metric table; challenger is optional if XGBoost/LightGBM is installed.
+- **Governance:** inventory record, risk tier, limitations, validation findings and action log.
+
+## Model-risk and regulatory framing
+
+The platform provides evidence artefacts that can support a model-risk process: model inventory metadata, reproducible validation metrics, assumptions/limitations, audit logs, and a generated report. It does **not** automatically certify compliance with PRA SS1/23, IFRS 9, or IRB/Standardised capital requirements. Validation should be independent of development, challenge conceptual soundness and data quality, review implementation and use, assess outcomes and limitations, document findings and remediation, and obtain accountable approval.
+
+## Data, privacy and security
+
+- Do not commit customer-level data, secrets, model artefacts, or production logs.
+- Configure authentication, authorisation, TLS, rate limits, retention and access controls before production deployment.
+- Audit events include a generated request ID, timestamp, model version and outcome metadata; avoid logging raw PII.
+- Model registry calls are optional and require a configured MLflow tracking URI.
+
+## Original notebook
+
+Place the repository's original `Final.ipynb` at `notebooks/Final.ipynb` to preserve the exploratory work. The original notebook could not be retrieved by the available repository reader during bundle generation, so this bundle does not fabricate its contents. A short placeholder is included if no notebook is supplied.
+
+## Tests
+
+```bash
+pytest
+```
+
+## Disclaimer
+
+This code is a starting point for technical demonstration and should be reviewed, tested, secured, and independently validated before any business or regulated use.

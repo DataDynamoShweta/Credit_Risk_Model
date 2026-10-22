@@ -1,86 +1,410 @@
-# Credit Risk Model Validation Platform
+<div align="center">
 
-A modular, testable credit-risk scorecard and independent model-validation toolkit designed around the responsibilities in the Skipton Model Validation / Model Risk role. It includes a logistic-regression champion, optional tree-based challenger, scorecard scaling, discrimination/calibration/stability/Out-of-Time (OOT) checks, a FastAPI scoring layer, audit logging, monitoring hooks, and governance reporting.
+# 🏦 Credit Risk Model Validation Platform
 
-> **Important:** This repository is an engineering demonstration, not evidence of regulatory approval or compliance. SS1/23 alignment is a design objective; compliance requires documented policies, evidence, independent review, and approval by the relevant institution. Standardised/IRB capital treatment and IFRS 9 requirements depend on model purpose and regulatory context.
+### *A modular, testable toolkit for credit-risk scorecard development, independent validation, and model governance.*
 
-## Repository structure
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![MLflow](https://img.shields.io/badge/MLflow-0194E2?style=for-the-badge&logo=mlflow&logoColor=white)](https://mlflow.org/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)](https://pytest.org/)
+
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?style=flat-square&logo=github-actions&logoColor=white)](.github/workflows/ci.yml)
+![Status](https://img.shields.io/badge/Status-Active_Development-yellow?style=flat-square)
+
+</div>
+
+---
+
+## 📖 Table of Contents
+
+- [✨ Overview](#-overview)
+- [🎯 Key Features](#-key-features)
+- [🏗️ Repository Structure](#️-repository-structure)
+- [🚀 Quick Start](#-quick-start)
+- [🔌 API Reference](#-api-reference)
+- [📊 Validation Scope](#-validation-scope)
+- [🛡️ Governance Artefacts](#️-governance-artefacts)
+- [🔄 MLOps Pipeline](#-mlops-pipeline)
+- [📈 Monitoring & Stability](#-monitoring--stability)
+- [🧪 Testing](#-testing)
+- [🔐 Data, Privacy & Security](#-data-privacy--security)
+- [🗺️ Roadmap](#️-roadmap)
+- [📓 Original Notebook](#-original-notebook)
+- [⚠️ Disclaimer](#️-disclaimer)
+
+---
+
+## ✨ Overview
+
+> A complete, end-to-end **credit-risk modelling and validation platform** that goes beyond a notebook — from feature engineering to a live scoring API, with automated validation reports and governance hooks.
+
+This repository demonstrates how a traditional credit-risk scorecard can be productionised responsibly:
+
+| 🧩 Component | 🎯 What it does |
+|---|---|
+| 🧮 **Champion Model** | Logistic-regression scorecard with WoE binning and PDO scaling |
+| 🌲 **Challenger Model** | Optional XGBoost / LightGBM benchmark for champion–challenger testing |
+| 🔬 **Validation Suite** | Discrimination, calibration, stability, OOT / vintage, and benchmark testing |
+| 🚀 **FastAPI Service** | Real-time scoring with request-level audit logging |
+| 📑 **Report Generator** | Auto-generated validation reports with inventory metadata and findings |
+| 📉 **Monitoring** | PSI / CSI drift metrics with configurable alert thresholds |
+
+> **ℹ️ Note:** This is an **engineering demonstration**. It is not evidence of regulatory approval or compliance. Model-risk processes require documented policies, independent review, and accountable sign-off by the deploying institution.
+
+---
+
+## 🎯 Key Features
+
+<table>
+<tr>
+<td width="50%">
+
+### 🧠 Modelling
+- ✅ Logistic-regression champion
+- ✅ WoE / IV feature binning
+- ✅ PDO scorecard scaling
+- ✅ Optional tree-based challenger
+- ✅ MLflow model registry integration
+
+</td>
+<td width="50%">
+
+### 🔬 Validation
+- ✅ AUROC, Gini, KS
+- ✅ Bootstrap confidence intervals
+- ✅ Brier score & log loss
+- ✅ Hosmer–Lemeshow calibration
+- ✅ Out-of-time (OOT) testing
+
+</td>
+</tr>
+<tr>
+<td width="50%">
+
+### 🚀 Serving
+- ✅ FastAPI REST endpoints
+- ✅ Pydantic request contracts
+- ✅ `/health`, `/model-card`, `/predict`
+- ✅ Request-ID audit logging
+- ✅ Dockerised deployment
+
+</td>
+<td width="50%">
+
+### 📊 Governance
+- ✅ Auto-generated validation reports
+- ✅ Model inventory (code-level)
+- ✅ Audit-trail middleware
+- 🚧 Persistent inventory YAML *(roadmap)*
+- 🚧 PMA log CSV *(roadmap)*
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🏗️ Repository Structure
 
 ```text
 credit-risk-model/
-├── src/credit_risk_model/
-│   ├── data/                 # CSV loading and Pydantic contracts
-│   ├── features/             # WoE/IV binning and PDO score scaling
-│   ├── models/               # Champion, optional challenger, MLflow registry
-│   ├── validation/           # Discrimination, calibration, PSI/CSI, OOT, benchmark
-│   ├── monitoring/            # Drift metrics and alert rules
-│   └── governance/           # Markdown/PDF report and model inventory
-├── api/                      # FastAPI serving and decision audit middleware
-├── pipelines/                # Train, validate, monitor entrypoints
-├── reports/                  # Report output and templates
-├── tests/
-├── notebooks/                # Original exploration notebook location
-├── .github/workflows/ci.yml
-├── Dockerfile
-├── docker-compose.yml
-├── pyproject.toml
-└── requirements.txt
+│
+├── 📦 src/credit_risk_model/          # Importable Python package
+│   ├── 📂 data/                       # CSV loading and Pydantic contracts
+│   ├── 📂 features/                   # WoE / IV binning and PDO score scaling
+│   ├── 📂 models/                     # Champion, challenger, MLflow registry
+│   ├── 📂 validation/                 # Discrimination, calibration, PSI/CSI, OOT
+│   ├── 📂 monitoring/                 # Drift metrics and alert rules
+│   └── 📂 governance/                 # Report builder and inventory logic
+│
+├── 🔌 api/                            # FastAPI serving + audit middleware
+├── ⚙️ pipelines/                      # train.py, validate.py, monitor.py
+├── 📄 reports/                        # Generated reports + Jinja2 templates
+│   ├── 📂 templates/
+│   └── 📝 validation_report.md
+├── 🧪 tests/                          # pytest suite
+├── 📓 notebooks/                      # Placeholder for exploration notebooks
+├── 🔁 .github/workflows/ci.yml        # Lint + test on Python 3.10–3.12
+├── 📓 Final.ipynb                     # Original exploration notebook
+├── 🐳 Dockerfile
+├── 🐳 docker-compose.yml
+├── ⚙️ pyproject.toml
+└── 📋 requirements.txt
 ```
 
-The Python package lives under `src/credit_risk_model/` (the importable package name), while the top-level `src/` folder remains the library root.
+---
 
-## Quick start
+## 🚀 Quick Start
 
-Python 3.10+ is recommended.
+> **Prerequisite:** Python 3.10+
+
+### 1️⃣ Clone and set up the environment
 
 ```bash
+git clone https://github.com/DataDynamoShweta/Credit_Risk_Model.git
+cd Credit_Risk_Model
+
 python -m venv .venv
 # Windows PowerShell: .venv\Scripts\Activate.ps1
-# Windows cmd:       .venv\Scripts\activate.bat
+# Windows cmd:        .venv\Scripts\activate.bat
+# macOS / Linux:      source .venv/bin/activate
+
 python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
-Create a small synthetic dataset and train:
+### 2️⃣ Train a champion model
 
 ```bash
 python pipelines/train.py --output-dir artifacts
-python pipelines/validate.py --model artifacts/champion.joblib --report reports/validation_report.md
+```
+
+> 💡 Uses synthetic data if no CSV is supplied.
+
+### 3️⃣ Run the validation suite
+
+```bash
+python pipelines/validate.py \
+  --model artifacts/champion.joblib \
+  --report reports/validation_report.md
+```
+
+### 4️⃣ Start the scoring API
+
+```bash
 uvicorn api.main:app --reload
 ```
 
-The API exposes `GET /health`, `GET /model-card`, and `POST /predict`. API payload fields must match the configured feature list. For a real dataset, supply a CSV with a binary target column (default `target`) and numeric/categorical predictors; do not commit sensitive customer data.
+Then open 👉 <http://localhost:8000/docs> for the interactive Swagger UI.
 
-## Validation scope
+### 5️⃣ (Optional) Run with Docker
 
-- **Discrimination:** AUROC, Gini, KS; optional bootstrap confidence intervals.
-- **Calibration:** Brier score, log loss, Hosmer–Lemeshow grouping statistic and reliability-curve data.
-- **Stability:** PSI for numeric/categorical distributions and CSI-style feature contribution reporting.
-- **OOT/vintage:** temporal holdout evaluation when a date column is supplied.
-- **Champion–challenger:** common split and comparable metric table; challenger is optional if XGBoost/LightGBM is installed.
-- **Governance:** inventory record, risk tier, limitations, validation findings and action log.
+```bash
+docker compose up --build
+```
 
-## Model-risk and regulatory framing
+---
 
-The platform provides evidence artefacts that can support a model-risk process: model inventory metadata, reproducible validation metrics, assumptions/limitations, audit logs, and a generated report. It does **not** automatically certify compliance with PRA SS1/23, IFRS 9, or IRB/Standardised capital requirements. Validation should be independent of development, challenge conceptual soundness and data quality, review implementation and use, assess outcomes and limitations, document findings and remediation, and obtain accountable approval.
+## 🔌 API Reference
 
-## Data, privacy and security
+| 🛣️ Endpoint | 🔧 Method | 📋 Purpose |
+|---|---|---|
+| `/health` | `GET` | ❤️ Liveness check and model-loaded flag |
+| `/model-card` | `GET` | 📇 Model name, version, purpose and status |
+| `/predict` | `POST` | 🎯 Score a single application (writes an audit event) |
 
-- Do not commit customer-level data, secrets, model artefacts, or production logs.
-- Configure authentication, authorisation, TLS, rate limits, retention and access controls before production deployment.
-- Audit events include a generated request ID, timestamp, model version and outcome metadata; avoid logging raw PII.
-- Model registry calls are optional and require a configured MLflow tracking URI.
+### 📥 Example request
 
-## Original notebook
+```http
+POST /predict
+Content-Type: application/json
 
-Place the repository's original `Final.ipynb` at `notebooks/Final.ipynb` to preserve the exploratory work. The original notebook could not be retrieved by the available repository reader during bundle generation, so this bundle does not fabricate its contents. A short placeholder is included if no notebook is supplied.
+{
+  "features": {
+    "loan_amnt": 15000,
+    "int_rate": 11.5,
+    "annual_inc": 62000,
+    "dti": 18.2,
+    "emp_length": 5
+  },
+  "request_id": "optional-client-id"
+}
+```
 
-## Tests
+### 📤 Example response
+
+```json
+{
+  "request_id": "optional-client-id",
+  "probability_of_default": 0.083,
+  "score": 642,
+  "model_version": "1.3.0"
+}
+```
+
+> ⚠️ The keys in `features` must match the feature list the model was trained on. If `request_id` is omitted, a UUID is generated.
+
+---
+
+## 📊 Validation Scope
+
+<table>
+<tr>
+<td width="50%">
+
+### 🎯 Discrimination
+- AUROC
+- Gini coefficient
+- KS statistic
+- Bootstrap confidence intervals *(optional)*
+
+### 📐 Calibration
+- Brier score
+- Log loss
+- Hosmer–Lemeshow grouping statistic
+- Reliability-curve data
+
+</td>
+<td width="50%">
+
+### 📉 Stability
+- PSI for numeric features
+- PSI for categorical features
+- CSI-style feature contribution
+
+### ⏳ Out-of-Time (OOT)
+- Temporal holdout evaluation
+- Vintage-level performance tracking
+- *(Enabled when a date column is supplied)*
+
+### 🥊 Champion–Challenger
+- Common-split metric comparison
+- Optional XGBoost / LightGBM challenger
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🛡️ Governance Artefacts
+
+| 📦 Artefact | 📁 Location | 🟢 Status |
+|---|---|---|
+| Validation Report | `reports/validation_report.md` (generated from `reports/templates/`) | ✅ Implemented |
+| Model Inventory | `src/credit_risk_model/governance/inventory.py` | ⚠️ Code-level metadata only — no persistent YAML yet |
+| Audit Logging | `api/logging_middleware.py` | ⚠️ Request-level events — no persistent store or query endpoints yet |
+| PMA Log | — | ❌ Not yet implemented |
+
+---
+
+## 🔄 MLOps Pipeline
+
+```text
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   📥 Data    │───▶│  🧮 Train    │───▶│  🔬 Validate │───▶│  🚀 Serve    │
+└──────────────┘    └──────────────┘    └──────────────┘    └──────────────┘
+                           │                    │                    │
+                           ▼                    ▼                    ▼
+                    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+                    │  📊 MLflow   │    │  📄 Report   │    │  🛡️ Audit    │
+                    │  Registry    │    │  Generator   │    │  Logging     │
+                    └──────────────┘    └──────────────┘    └──────────────┘
+                                                                 │
+                                                                 ▼
+                                                        ┌──────────────┐
+                                                        │  📉 Monitor  │
+                                                        │  PSI / CSI   │
+                                                        └──────────────┘
+```
+
+**CI via GitHub Actions** runs on every push and pull request, on Python 3.10, 3.11 and 3.12:
+
+- 🧹 **Lint** — `ruff check src api pipelines tests`
+- 🧪 **Test** — `pytest`
+
+---
+
+## 📈 Monitoring & Stability
+
+### 📉 Population Stability Index (PSI)
+
+```text
+PSI = Σ (Actual% − Expected%) × ln(Actual% / Expected%)
+```
+
+| 🚦 Threshold | 🎯 Interpretation | 🛠️ Action |
+|---|---|---|
+| `< 0.10` | 🟢 No significant shift | None |
+| `0.10 – 0.25` | 🟡 Moderate shift | Investigate |
+| `≥ 0.25` | 🔴 Major shift | Escalate to validation |
+
+### 📊 Characteristic Stability Index (CSI)
+
+Applied per feature to isolate which inputs are driving drift — essential for root-cause analysis and stakeholder communication.
+
+---
+
+## 🧪 Testing
 
 ```bash
 pytest
 ```
 
-## Disclaimer
+Test coverage includes:
 
-This code is a starting point for technical demonstration and should be reviewed, tested, secured, and independently validated before any business or regulated use.
+- ✅ API contract tests (Pydantic schemas)
+- ✅ Discrimination metric correctness
+- ✅ Stability metric correctness
+- ✅ End-to-end validation pipeline
+
+---
+
+## 🔐 Data, Privacy & Security
+
+> 🚨 **Critical reminders before any deployment:**
+
+- ❌ Do not commit customer-level data, secrets, model artefacts, or production logs.
+- 🔒 Configure authentication, authorisation, TLS, rate limits, retention, and access controls.
+- 🕵️ Audit events include a generated request ID, timestamp, model version, and outcome metadata — raw PII is never logged.
+- 🔗 MLflow registry calls are optional and require a configured tracking URI.
+
+---
+
+## 🗺️ Roadmap
+
+### 🎯 Governance Hardening
+
+- [ ] 📋 Add `governance/model_inventory.yaml` — persistent, auditable inventory register
+- [ ] 📝 Add `governance/pma_log.csv` + `src/credit_risk_model/governance/pma.py`
+- [ ] 🗂️ Add `governance/audit_trail/` with daily-rotated decision logs
+- [ ] 🔍 Add read-only endpoints: `/audit/decisions`, `/audit/changes`, `/audit/monitoring`
+- [ ] 🚪 Gate model loading against inventory status and review dates
+
+### 🚀 Platform Enhancements
+
+- [ ] 📊 Evidently AI dashboard integration
+- [ ] 🌲 SHAP-based challenger explainability
+- [ ] 🔁 Automated nightly monitoring via GitHub Actions cron
+- [ ] 🧾 PDF export for validation reports
+
+---
+
+## 📓 Original Notebook
+
+The original exploratory analysis is preserved at:
+
+```text
+📂 Final.ipynb
+```
+
+Useful for understanding the modelling journey that led to the productionised pipeline.
+
+---
+
+## ⚠️ Disclaimer
+
+<div align="center">
+
+**This code is a technical demonstration.**
+
+It should be reviewed, tested, secured, and independently validated before any business use.
+
+*No warranty is provided. Use at your own risk.*
+
+</div>
+
+---
+
+<div align="center">
+
+💡 **Built with care for responsible credit-risk modelling**
+
+⭐ If this project helped you, consider giving it a star! ⭐
+
+[⬆ Back to Top](#-credit-risk-model-validation-platform)
+
+</div>

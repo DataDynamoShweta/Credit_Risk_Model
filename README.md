@@ -126,9 +126,8 @@ credit-risk-model/
 │   ├── 📂 templates/
 │   └── 📝 validation_report.md
 ├── 🧪 tests/                          # pytest suite
-├── 📓 notebooks/                      # Placeholder for exploration notebooks
+├── 📓 notebooks/Final.ipynb           # Original exploration notebook
 ├── 🔁 .github/workflows/ci.yml        # Lint + test on Python 3.10–3.12
-├── 📓 Final.ipynb                     # Original exploration notebook
 ├── 🐳 Dockerfile
 ├── 🐳 docker-compose.yml
 ├── ⚙️ pyproject.toml
@@ -378,7 +377,7 @@ Test coverage includes:
 The original exploratory analysis is preserved at:
 
 ```text
-📂 Final.ipynb
+📂 notebooks/Final.ipynb
 ```
 
 Useful for understanding the modelling journey that led to the productionised pipeline.

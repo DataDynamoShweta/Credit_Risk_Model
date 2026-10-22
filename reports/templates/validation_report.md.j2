@@ -1,0 +1,24 @@
+# Independent Model Validation Report
+
+- Model: {{ model_name }}
+- Validation date: {{ validation_date }}
+- Status: {{ status }}
+
+## Executive summary
+{{ executive_summary }}
+
+## Results
+{% for section, metrics in results.items() %}
+### {{ section }}
+{% for key, value in metrics.items() %}
+- {{ key }}: {{ value }}
+{% endfor %}
+{% endfor %}
+
+## Findings
+{% for finding in findings %}
+- {{ finding.severity }} — {{ finding.title }}: {{ finding.description }}
+{% endfor %}
+
+## Limitations
+{{ limitations }}

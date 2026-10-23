@@ -16,17 +16,19 @@ dependencies = [
   "fastapi>=0.110",
   "uvicorn[standard]>=0.27",
   "joblib>=1.3",
+  "scipy>=1.10",
   "jinja2>=3.1",
-  "python-multipart>=0.0.9",
   "pydantic-settings>=2.3",
   "pyyaml>=6.0"
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "httpx>=0.27", "ruff>=0.4"]
+# shap is included so the explainability tests run in CI instead of being skipped.
+dev = ["pytest>=8.0", "httpx>=0.27", "ruff>=0.4", "shap>=0.45"]
 registry = ["mlflow>=2.12"]
 pdf = ["Markdown>=3.6", "weasyprint>=62"]
-monitoring = ["evidently>=0.4"]
+# drift.evidently_report uses the Evidently >= 0.7 API (evidently.Report, evidently.presets).
+monitoring = ["evidently>=0.7"]
 challengers = ["xgboost>=2.0", "lightgbm>=4.0"]
 explain = ["shap>=0.45"]
 all = ["credit-risk-model-validation[dev,explain,pdf]"]

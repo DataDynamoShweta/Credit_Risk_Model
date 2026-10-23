@@ -1,43 +1,63 @@
 # Persistent, auditable model register.
-# Schema validated by src/credit_risk_model/governance/inventory.py
+# Schema: src/credit_risk_model/governance/inventory.py (ModelEntry, unknown keys rejected).
 # Statuses: draft | active | under_review | suspended | retired
+# Monitoring thresholds are NOT set here; the single source is Settings / .env.
+# Artefact paths are produced by `python pipelines/train.py` and are not committed.
 models:
   - model_name: credit_risk_champion
     model_version: 1.3.0
-    model_type: logistic_regression_scorecard
+    model_type: logistic_regression
     owner: model-development-team
     purpose: probability_of_default_scoring
     status: active
     approved_by: DataDynamoShweta
     approval_date: 2025-10-01
-    next_review_date: 2026-10-01
-    training_data_reference: synthetic_demo_data
+    next_review_date: 2027-10-01
+    last_validation_date: null
+    risk_tier: high
+    risk_tier_rationale: >-
+      PD estimates would feed credit decisions; a materially wrong PD has direct
+      financial and customer impact.
+    intended_use: >-
+      Demonstration of PD estimation and model-validation tooling on synthetic data.
+    limitations:
+      - Trained and evaluated on synthetic data only; no real-portfolio evidence.
+      - No conceptual-soundness review, data-lineage review or use test has been performed.
+      - Not calibrated or assessed for IFRS 9 ECL or IRB capital purposes.
+    use_restrictions:
+      - Not for credit decisions or any customer-facing use.
+      - Not for regulatory capital, provisioning or financial reporting.
+    findings: []
+    training_data_reference: synthetic (credit_risk_model.data.synthetic, seed recorded in training metadata)
     feature_list_reference: artifacts/feature_list.json
+    metadata_reference: artifacts/training_metadata.json
     artifact_path: artifacts/champion.joblib
+    artifact_sha256: null
     mlflow_model_uri: null
     validation_report: reports/validation_report.md
-    monitoring_thresholds:
-      psi_investigate: 0.10
-      psi_alert: 0.25
-      csi_investigate: 0.10
-      csi_alert: 0.25
 
   - model_name: credit_risk_challenger
     model_version: 0.9.0
-    model_type: xgboost_challenger
+    model_type: hist_gradient_boosting
     owner: model-development-team
     purpose: challenger_benchmark
     status: under_review
     approved_by: null
     approval_date: null
-    next_review_date: 2026-04-01
-    training_data_reference: synthetic_demo_data
+    next_review_date: null
+    last_validation_date: null
+    risk_tier: medium
+    risk_tier_rationale: Benchmark only; not used for scoring.
+    intended_use: Champion-challenger comparison on the same held-out cohort.
+    limitations:
+      - Synthetic data only.
+    use_restrictions:
+      - Benchmarking only; never served by the API.
+    findings: []
+    training_data_reference: same training sample as credit_risk_champion
     feature_list_reference: artifacts/feature_list.json
+    metadata_reference: artifacts/training_metadata.json
     artifact_path: artifacts/challenger.joblib
+    artifact_sha256: null
     mlflow_model_uri: null
-    validation_report: reports/challenger_report.md
-    monitoring_thresholds:
-      psi_investigate: 0.10
-      psi_alert: 0.25
-      csi_investigate: 0.10
-      csi_alert: 0.25
+    validation_report: reports/validation_report.md

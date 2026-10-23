@@ -1,24 +1,209 @@
-# Independent Model Validation Report
+{% set r = results %}
+# Model Validation Report — {{ model.model_name }} {{ model.model_version }}
 
-- Model: {{ model_name }}
-- Validation date: {{ validation_date }}
-- Status: {{ status }}
+| | |
+|---|---|
+| Model | `{{ model.model_name }}` version `{{ model.model_version }}` ({{ model.model_type }}) |
+| Inventory status | `{{ model.status }}` |
+| Report date (UTC) | {{ validation_date }} |
+| Report status | **Draft — requires independent validator review and sign-off** |
+| Data source | {{ r.data_source }}{% if data_note %} — {{ data_note }}{% endif %} |
 
-## Executive summary
-{{ executive_summary }}
+> This report is generated automatically. It presents evidence; it is not a validation
+> opinion, an approval, or a statement of regulatory compliance. All automated findings
+> must be confirmed or rejected by an independent validator.
 
-## Results
-{% for section, metrics in results.items() %}
-### {{ section }}
-{% for key, value in metrics.items() %}
-- {{ key }}: {{ value }}
+## 1. Executive summary
+
+- Held-out test AUROC **{{ r.discrimination.auroc | fmt }}**{% if r.discrimination.auroc_ci %} (95% bootstrap CI {{ r.discrimination.auroc_ci[0] | fmt }}–{{ r.discrimination.auroc_ci[1] | fmt }}){% endif %}, Gini {{ r.discrimination.gini | fmt }}, KS {{ r.discrimination.ks | fmt }}.
+- Mean predicted PD {{ r.calibration.mean_predicted_pd | pct(2) }} vs observed default rate {{ r.calibration.observed_default_rate | pct(2) }} (ratio {{ r.calibration.calibration_ratio | fmt(2) }}).
+{% if r.oot %}
+- Out-of-time sample: {{ r.oot.status }}{% if r.oot.auroc is defined %}, AUROC {{ r.oot.auroc | fmt }}{% endif %}.
+{% endif %}
+- {{ r.findings | length }} automated finding(s); {{ r.not_assessed | length }} area(s) not assessed.
+- Discrimination (ranking) and calibration (level of PD) are reported separately; good
+  ranking does not imply that PDs are calibrated.
+
+## 2. Methodology
+
+- Data is split once by `split_dataset` (shared with training, seed {{ seed }}): {% if r.split_sizes.oot %}the latest applications by date form the out-of-time (OOT) sample, and the remaining data is split stratified into train and test.{% else %}stratified train/test split (no date column, so no OOT sample).{% endif %}
+
+- Sample sizes: train {{ r.split_sizes.train | fmt }}, test {{ r.split_sizes.test | fmt }}, OOT {{ r.split_sizes.oot | fmt }}.
+- Metrics use the **held-out test** sample (and OOT sample). The training sample is used
+  only as the stability reference and for the WoE/IV review.
+- Thresholds: PSI investigate {{ thresholds.psi_investigate }}, escalate {{ thresholds.psi_escalate }}; CSI investigate {{ thresholds.csi_investigate }}, escalate {{ thresholds.csi_escalate }}.
+
+### Assessment status
+
+| Area | Status | Basis |
+|---|---|---|
+{% for row in r.assessment %}
+| {{ row.area }} | {{ row.status }} | {{ row.basis }} |
 {% endfor %}
+
+## 3. Data review
+
+| Sample | Rows | Defaults | Default rate | Start | End |
+|---|---:|---:|---:|---|---|
+{% for s in r.data_review.splits %}
+| {{ s.sample }} | {{ s.rows | fmt }} | {{ s.defaults | fmt }} | {{ s.default_rate | pct(2) }} | {{ s.start_date | default("—") }} | {{ s.end_date | default("—") }} |
 {% endfor %}
 
-## Findings
-{% for finding in findings %}
-- {{ finding.severity }} — {{ finding.title }}: {{ finding.description }}
+Duplicate rows across samples: {{ r.data_review.duplicate_rows | fmt }}.
+
+| Feature | Type | Missing | Distinct | Constant |
+|---|---|---:|---:|---|
+{% for f in r.data_review.features %}
+| `{{ f.feature }}` | {{ f.dtype }} | {{ f.missing_rate | pct(2) }} | {{ f.distinct | fmt }} | {{ f.constant | fmt }} |
 {% endfor %}
 
-## Limitations
-{{ limitations }}
+## 4. Model implementation review
+
+| Check | Result | Detail |
+|---|---|---|
+{% for c in r.implementation.checks %}
+| {{ c.check }} | {{ c.passed | check }} | {{ c.detail }} |
+{% endfor %}
+
+Training metadata: class_weight `{{ metadata.class_weight }}`, random_state `{{ metadata.random_state }}`,
+{{ metadata.training_rows | fmt }} training rows, scikit-learn {{ metadata.library_versions["scikit-learn"] }}.
+
+## 5. Discrimination (held-out test)
+
+| Metric | Value |
+|---|---:|
+| AUROC | {{ r.discrimination.auroc | fmt }} |
+| Gini | {{ r.discrimination.gini | fmt }} |
+| KS | {{ r.discrimination.ks | fmt }} |
+{% if r.discrimination.auroc_ci %}
+| AUROC 95% CI (bootstrap, {{ r.discrimination.bootstrap_valid_samples }} samples) | {{ r.discrimination.auroc_ci[0] | fmt }} – {{ r.discrimination.auroc_ci[1] | fmt }} |
+{% endif %}
+
+## 6. Calibration (held-out test)
+
+| Metric | Value |
+|---|---:|
+| Brier score | {{ r.calibration.brier | fmt(4) }} |
+| Log loss | {{ r.calibration.log_loss | fmt(4) }} |
+| Mean predicted PD | {{ r.calibration.mean_predicted_pd | pct(2) }} |
+| Observed default rate | {{ r.calibration.observed_default_rate | pct(2) }} |
+| Calibration ratio (predicted / observed) | {{ r.calibration.calibration_ratio | fmt(2) }} |
+| Hosmer–Lemeshow-style statistic (descriptive, no p-value) | {{ r.calibration.hosmer_lemeshow_statistic | fmt(1) }} |
+
+| PD group | Count | Mean predicted PD | Observed default rate |
+|---:|---:|---:|---:|
+{% for g in r.calibration.reliability %}
+| {{ loop.index }} | {{ g.count | fmt }} | {{ g.mean_pd | pct(2) }} | {{ g.observed_rate | pct(2) }} |
+{% endfor %}
+
+## 7. Stability
+
+{% if r.stability.note %}{{ r.stability.note }}
+
+{% endif %}
+| Score PSI | Value | Level |
+|---|---:|---|
+{% for name, s in r.stability.score_psi.items() %}
+| train→{{ name }} | {{ s.psi | fmt(4) }} | {{ s.level }} |
+{% endfor %}
+
+| Feature | Comparison | CSI | Level |
+|---|---|---:|---|
+{% for f in r.stability.features %}
+| `{{ f.feature }}` | {{ f.comparison }} | {{ f.csi | fmt(4) }} | {{ f.level }} |
+{% endfor %}
+
+## 8. Out-of-time and vintage performance
+
+{% if r.oot %}
+| OOT window | Rows | Default rate | Mean PD | AUROC | Brier | Status |
+|---|---:|---:|---:|---:|---:|---|
+| {{ r.oot.start_date }} – {{ r.oot.end_date }} | {{ r.oot.rows | fmt }} | {{ r.oot.default_rate | pct(2) }} | {{ r.oot.mean_pd | pct(2) }} | {{ r.oot.auroc | default(None) | fmt }} | {{ r.oot.brier | fmt(4) }} | {{ r.oot.status }}{% if r.oot.reason is defined %} ({{ r.oot.reason }}){% endif %} |
+
+| Vintage | Rows | Default rate | Mean PD | AUROC | Status |
+|---|---:|---:|---:|---:|---|
+{% for v in r.vintage %}
+| {{ v.vintage }} | {{ v.rows | fmt }} | {{ v.default_rate | pct(2) }} | {{ v.mean_pd | pct(2) }} | {{ v.auroc | default(None) | fmt }} | {{ v.status }} |
+{% endfor %}
+{% else %}
+Not assessed: the data has no date column.
+{% endif %}
+
+## 9. Champion–challenger (same held-out test cohort)
+
+{% if r.challenger %}
+| Model | AUROC | Gini | KS | Brier | Log loss |
+|---|---:|---:|---:|---:|---:|
+{% for m in r.challenger %}
+| {{ m.model }} | {{ m.auroc | fmt }} | {{ m.gini | fmt }} | {{ m.ks | fmt }} | {{ m.brier | fmt(4) }} | {{ m.log_loss | fmt(4) }} |
+{% endfor %}
+{% else %}
+Not assessed: no challenger artefact was available.
+{% endif %}
+
+## 10. Sensitivity
+
+Change in mean predicted PD (base {{ r.sensitivity.base_mean_pd | pct(2) }}) when each numeric feature is scaled by ±{{ (r.sensitivity.shift * 100) | round | int }}%. {{ r.sensitivity.note }}
+
+| Feature | +{{ (r.sensitivity.shift * 100) | round | int }}% | −{{ (r.sensitivity.shift * 100) | round | int }}% |
+|---|---:|---:|
+{% for s in r.sensitivity.features %}
+| `{{ s.feature }}` | {{ s.mean_pd_up | fmt(4) }} | {{ s.mean_pd_down | fmt(4) }} |
+{% endfor %}
+
+### WoE / IV review (training sample)
+
+{{ r.woe_iv.note }}
+
+| Feature | IV | Bins | Kind | Monotonic bad rate |
+|---|---:|---:|---|---|
+{% for w in r.woe_iv.features %}
+| `{{ w.feature }}` | {{ w.iv | fmt }} | {{ w.bins }} | {{ w.kind }} | {{ w.monotonic | fmt if w.monotonic is not none else "n/a" }} |
+{% endfor %}
+
+## 11. Observations
+
+{% if r.pma %}
+- Post-model adjustment register: {{ r.pma.total }} record(s); active {{ r.pma.active | length }}, overdue review {{ r.pma.overdue_review | length }}, expired {{ r.pma.expired | length }}.
+{% endif %}
+{% for c in r.implementation.checks if c.passed is false %}
+- Implementation check failed: {{ c.check }}.
+{% endfor %}
+- Validator observations: _to be completed by the independent validator._
+
+## 12. Findings
+
+Automated findings are rule-based prompts for the validator, not confirmed findings.
+
+| ID | Severity | Title | Description | Owner | Due date | Validator decision |
+|---|---|---|---|---|---|---|
+{% for f in r.findings %}
+| {{ f.id }} | {{ f.severity }} | {{ f.title }} | {{ f.description }} | _TBD_ | _TBD_ | _confirm / reject_ |
+{% else %}
+| — | — | No automated findings | — | — | — | — |
+{% endfor %}
+
+## 13. Use restrictions and limitations
+
+{% for item in model.use_restrictions %}
+- {{ item }}
+{% endfor %}
+{% for item in model.limitations %}
+- {{ item }}
+{% endfor %}
+
+## 14. Not assessed
+
+| Area | Reason |
+|---|---|
+{% for row in r.not_assessed %}
+| {{ row.area }} | {{ row.basis }} |
+{% endfor %}
+
+## 15. Sign-off
+
+| Role | Name | Decision | Date | Signature |
+|---|---|---|---|---|
+| Model owner | | | | |
+| Independent validator | | | | |
+| Model risk approver | | | | |

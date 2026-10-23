@@ -4,12 +4,15 @@ services:
     ports:
       - "8000:8000"
     environment:
-      MODEL_PATH: /app/artifacts/champion.joblib
-      MODEL_VERSION: local-unregistered
+      ENVIRONMENT: docker-compose
+      # Set to enable the /audit endpoints (Authorization: Bearer <token>).
+      AUDIT_API_TOKEN: ${AUDIT_API_TOKEN:-}
     volumes:
-      - ./artifacts:/app/artifacts:ro
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
+      # Audit records survive container restarts and removal.
+      - audit_trail:/app/governance/audit_trail
+      # To serve your own artefact instead of the demo model trained in the image:
+      # - ./artifacts:/app/artifacts:ro
+    # The image defines a HEALTHCHECK that requires model_loaded=true.
+
+volumes:
+  audit_trail:

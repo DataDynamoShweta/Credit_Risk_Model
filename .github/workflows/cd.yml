@@ -14,33 +14,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-smoke:
+  build-smoke-publish:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Compute image tags
         id: tags
         run: |
           echo "sha=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
-          [[ "${GITHUB_REF}" == refs/tags/* ]] &&                 echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-          [[ "${GITHUB_REF}" == "refs/heads/main" ]] &&                 echo "latest=true" >> "$GITHUB_OUTPUT"
-          true
-      - name: Build image
-        run: docker build -t credit-risk:${{ steps.tags.outputs.sha }} .
-      - name: Smoke test container
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            echo "version=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+          if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+            echo "latest=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build image (trains the demo model during the build)
+        run: docker build -t "credit-risk:${{ steps.tags.outputs.sha }}" .
+
+      # Governance is not bypassed: ALLOW_UNREVIEWED_MODEL is not set, so the smoke test
+      # fails if the inventory blocks the model (e.g. an overdue review date).
+      - name: Smoke test container (model must load and score)
         run: |
-          docker run -d --name cr-smoke -p 8000:8000                 -e ALLOW_UNREVIEWED_MODEL=true -e ENVIRONMENT=ci                 credit-risk:${{ steps.tags.outputs.sha }}
-          for i in {1..20}; do
-            if curl -fsS http://localhost:8000/health > /tmp/h.json; then
-              cat /tmp/h.json
-              exit 0
-            fi
-            sleep 2
-          done
-          docker logs cr-smoke; exit 1
+          docker run -d --name cr-smoke -p 8000:8000 -e ENVIRONMENT=ci \
+            "credit-risk:${{ steps.tags.outputs.sha }}"
+          python scripts/smoke_test.py --url http://localhost:8000 --timeout 60 \
+            || { docker logs cr-smoke; exit 1; }
+
       - name: Tear down
         if: always()
         run: docker rm -f cr-smoke || true
+
       - name: Log in to GHCR
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
         uses: docker/login-action@v3
@@ -48,17 +56,22 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Push image
         if: ${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+        env:
+          SHA: ${{ steps.tags.outputs.sha }}
+          VERSION: ${{ steps.tags.outputs.version }}
+          LATEST: ${{ steps.tags.outputs.latest }}
         run: |
-          IMAGE="ghcr.io/${{ github.repository }}"
-          SHA="${{ steps.tags.outputs.sha }}"
-          docker tag credit-risk:$SHA "$IMAGE:$SHA"; docker push "$IMAGE:$SHA"
-          if [[ -n "${{ steps.tags.outputs.version }}" ]]; then
-            docker tag credit-risk:$SHA "$IMAGE:${{ steps.tags.outputs.version }}"
-            docker push "$IMAGE:${{ steps.tags.outputs.version }}"
+          IMAGE="ghcr.io/${GITHUB_REPOSITORY,,}"
+          docker tag "credit-risk:$SHA" "$IMAGE:$SHA"
+          docker push "$IMAGE:$SHA"
+          if [[ -n "$VERSION" ]]; then
+            docker tag "credit-risk:$SHA" "$IMAGE:$VERSION"
+            docker push "$IMAGE:$VERSION"
           fi
-          if [[ "${{ steps.tags.outputs.latest }}" == "true" ]]; then
-            docker tag credit-risk:$SHA "$IMAGE:latest"
+          if [[ "$LATEST" == "true" ]]; then
+            docker tag "credit-risk:$SHA" "$IMAGE:latest"
             docker push "$IMAGE:latest"
           fi

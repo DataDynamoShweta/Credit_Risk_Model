@@ -101,6 +101,7 @@ if not exist "%ARTIFACTS%"  mkdir "%ARTIFACTS%"
 if not exist "%REPORTS%"    mkdir "%REPORTS%"
 if not exist "%ROOT%\governance\audit_trail\decisions"  mkdir "%ROOT%\governance\audit_trail\decisions"
 if not exist "%ROOT%\governance\audit_trail\monitoring" mkdir "%ROOT%\governance\audit_trail\monitoring"
+if not exist "%ROOT%\governance\audit_trail\changes"    mkdir "%ROOT%\governance\audit_trail\changes"
 echo        Folders ready.
 echo.
 
@@ -193,7 +194,7 @@ echo.
 
 echo  [C] POST /predict  (sample application)
 powershell -NoProfile -Command ^
-  "try { $body = @{ features = @{ loan_amnt = 15000; int_rate = 11.5; annual_inc = 62000; dti = 18.2; emp_length = 5 }; request_id = 'demo-001' } | ConvertTo-Json -Depth 5; Invoke-RestMethod -Uri '%API_URL%/predict' -Method POST -Body $body -ContentType 'application/json' -TimeoutSec 10 | ConvertTo-Json -Depth 5 } catch { Write-Host 'Predict failed:' $_.Exception.Message }"
+  "try { $body = @{ features = @{ loan_amnt = 15000.0; int_rate = 11.5; annual_inc = 62000.0; dti = 18.2; emp_length = 5; home_ownership = 'RENT' }; request_id = 'demo-001' } | ConvertTo-Json -Depth 5; Invoke-RestMethod -Uri '%API_URL%/predict' -Method POST -Body $body -ContentType 'application/json' -TimeoutSec 10 | ConvertTo-Json -Depth 5 } catch { Write-Host 'Predict failed:' $_.Exception.Message }"
 echo.
 
 echo  ============================================================

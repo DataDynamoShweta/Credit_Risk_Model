@@ -1,61 +1,57 @@
-"""Generate Markdown validation reports, with optional PDF conversion."""
+"""Render validation reports from the Jinja2 template.
+
+``reports/templates/validation_report.md.j2`` is the single source of truth for the report
+layout; there is no embedded fallback template. PDF export lives in ``pdf_export``.
+"""
+from __future__ import annotations
+
 from datetime import datetime, timezone
 from pathlib import Path
 
-from jinja2 import Template
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
-DEFAULT_TEMPLATE = """# Independent Model Validation Report
+TEMPLATE_NAME = "validation_report.md.j2"
 
-- **Model:** {{ model_name }}
-- **Validation date (UTC):** {{ validation_date }}
-- **Validation status:** {{ status }}
-- **Model purpose:** {{ purpose }}
 
-## Executive summary
-{{ executive_summary }}
+def fmt(value, digits: int = 3) -> str:
+    """Format numbers for Markdown tables; None becomes an em dash."""
+    if value is None:
+        return "—"
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    if isinstance(value, int):
+        return f"{value:,}"
+    if isinstance(value, float):
+        return f"{value:.{digits}f}"
+    return str(value)
 
-## Quantitative results
-{% for section, metrics in results.items() %}
-### {{ section }}
-{% for key, value in metrics.items() %}
-- **{{ key }}:** {{ value }}
-{% endfor %}
-{% endfor %}
 
-## Findings and remediation
-{% for finding in findings %}
-- **{{ finding.severity }} — {{ finding.title }}:** {{ finding.description }} (Owner: {{ finding.owner }}; Due: {{ finding.due_date }})
-{% else %}
-- No findings were supplied. Independent reviewers must confirm this is appropriate.
-{% endfor %}
+def pct(value, digits: int = 1) -> str:
+    return "—" if value is None else f"{value * 100:.{digits}f}%"
 
-## Limitations, assumptions and use restrictions
-{{ limitations }}
 
-## Governance and regulatory considerations
-This report is an evidence template, not a declaration of compliance with PRA SS1/23, IFRS 9 or regulatory capital requirements. Document model scope, materiality, validation independence, data lineage, conceptual soundness, implementation testing, outcomes analysis, approval, limitations and remediation in accordance with the institution's approved policy.
-"""
+def check_mark(value) -> str:
+    return {True: "✅ pass", False: "❌ fail", None: "➖ not checked"}[value]
 
-def build_markdown(output_path, *, model_name, purpose, results, status="Review required",
-                   executive_summary="Automated results require interpretation by an independent validator.",
-                   findings=None, limitations="Not approved for production use.", template_path=None):
-    template_text = Path(template_path).read_text(encoding="utf-8") if template_path else DEFAULT_TEMPLATE
-    content = Template(template_text).render(
-        model_name=model_name, purpose=purpose, results=results, status=status,
-        executive_summary=executive_summary, findings=findings or [], limitations=limitations,
-        validation_date=datetime.now(timezone.utc).date().isoformat())
+
+def default_template_path() -> Path:
+    from credit_risk_model.config import get_settings
+    return get_settings().reports_dir / "templates" / TEMPLATE_NAME
+
+
+def render_report(context: dict, template_path: Path | None = None) -> str:
+    path = Path(template_path) if template_path else default_template_path()
+    if not path.exists():
+        raise FileNotFoundError(f"Report template not found: {path}")
+    env = Environment(loader=FileSystemLoader(str(path.parent)), undefined=StrictUndefined,
+                      trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
+    env.filters.update(fmt=fmt, pct=pct, check=check_mark)
+    context = {"validation_date": datetime.now(timezone.utc).date().isoformat(), **context}
+    return env.get_template(path.name).render(**context)
+
+
+def build_markdown(output_path, context: dict, template_path: Path | None = None) -> Path:
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(content, encoding="utf-8")
+    output.write_text(render_report(context, template_path), encoding="utf-8")
     return output
-
-def markdown_to_pdf(markdown_path, pdf_path):
-    """Optional PDF conversion through WeasyPrint; raises a clear error if unavailable."""
-    try:
-        import markdown
-        from weasyprint import HTML
-    except ImportError as exc:
-        raise RuntimeError("Install the 'pdf' extra for PDF report generation") from exc
-    html = markdown.markdown(Path(markdown_path).read_text(encoding="utf-8"), extensions=["tables"])
-    HTML(string=html).write_pdf(str(pdf_path))
-    return Path(pdf_path)

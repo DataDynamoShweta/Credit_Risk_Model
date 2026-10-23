@@ -1,3 +1,1 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:d507e22c1e120d192eee68a1cc0d384212145c7728199c918198f9f928e60592
-size 164
+pma_id,model_name,model_version,adjustment_type,direction,magnitude,unit,rationale,effective_date,review_date,expiry_date,owner,approver,approval_state,evidence_reference,created_at_utc

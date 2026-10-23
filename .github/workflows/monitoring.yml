@@ -1,8 +1,14 @@
 name: nightly-monitoring
+# Demonstration of the monitoring job on synthetic data. Real monitoring needs the
+# production reference and current samples in place of the generated files.
 on:
   schedule:
     - cron: "0 2 * * *"
   workflow_dispatch:
+    inputs:
+      drift:
+        description: "Synthetic population shift for the current sample (0 = none)"
+        default: "0.15"
 
 permissions:
   contents: read
@@ -16,16 +22,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with: { python-version: "3.11" }
+        with:
+          python-version: "3.11"
       - run: pip install -e ".[dev]"
-      - name: Generate synthetic data
+
+      - name: Train champion (same canonical synthetic generator)
+        run: python pipelines/train.py
+
+      - name: Generate reference and current samples
+        env:
+          DRIFT: ${{ github.event.inputs.drift || '0.15' }}
         run: |
-          python scripts/generate_synthetic.py --rows 5000 --seed 42                 --out data/reference.csv
-          python scripts/generate_synthetic.py --rows 5000 --seed 43                 --drift 0.15 --out data/current.csv
-      - name: Run monitoring
+          python scripts/generate_synthetic.py --rows 5000 --seed 42 --out data/reference.csv
+          python scripts/generate_synthetic.py --rows 5000 --seed 43 --drift "$DRIFT" \
+            --out data/current.csv
+
+      # Exit codes: 0 ok, 1 investigate, 2 escalate, 3 input error. Not masked: an alert
+      # fails this step (and the run) so it is visible; later steps still run.
+      - name: Run monitoring (drift + performance)
+        id: monitor
+        run: python pipelines/monitor.py --reference data/reference.csv --current data/current.csv
+
+      - name: Read alert level
+        id: level
+        if: ${{ always() && hashFiles('artifacts/monitoring/monitoring_summary.json') != '' }}
         run: |
-          python pipelines/monitor.py --reference data/reference.csv                 --current data/current.csv || echo "exit=$?"
+          python -c "import json; print('level=' + json.load(open('artifacts/monitoring/monitoring_summary.json'))['overall_level'])" >> "$GITHUB_OUTPUT"
+
       - name: Upload artefacts
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: monitoring-${{ github.run_id }}
@@ -33,15 +58,12 @@ jobs:
             artifacts/monitoring/monitoring_summary.json
             artifacts/monitoring/psi_csi_metrics.csv
             reports/monitoring_report.md
-      - name: Read alert level
-        id: level
-        if: ${{ hashFiles('artifacts/monitoring/monitoring_summary.json') != '' }}
-        run: |
-          python -c "import json; print('level=' + json.load(open('artifacts/monitoring/monitoring_summary.json'))['overall_alert_level'])" >> "$GITHUB_OUTPUT"
+            reports/drift_summary.json
+
       - name: Open alert issue
-        if: ${{ steps.level.outputs.level == 'escalate' }}
+        if: ${{ always() && steps.level.outputs.level == 'escalate' }}
         uses: peter-evans/create-issue-from-file@v5
         with:
-          title: "Monitoring alert ${{ github.run_id }}"
+          title: "Monitoring alert (escalate) ${{ github.run_id }}"
           content-filepath: reports/monitoring_report.md
           labels: monitoring-alert

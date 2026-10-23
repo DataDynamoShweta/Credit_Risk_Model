@@ -21,7 +21,12 @@ def calibration(y_true, y_prob, *, groups: int = 10):
     denom_good = expected_good.clip(lower=1e-8)
     hl = float((((observed_bad-expected_bad)**2/denom_bad) +
                 ((observed_good-expected_good)**2/denom_good)).sum())
+    mean_pd, observed = float(p.mean()), float(y.mean())
     return {"brier": float(brier_score_loss(y, p)),
             "log_loss": float(log_loss(y, p, labels=[0,1])),
+            "mean_predicted_pd": mean_pd,
+            "observed_default_rate": observed,
+            # Calibration-in-the-large: ratio of mean predicted PD to observed default rate.
+            "calibration_ratio": mean_pd / observed if observed > 0 else None,
             "hosmer_lemeshow_statistic": hl,
             "reliability": table.drop(columns="bin").to_dict(orient="records")}

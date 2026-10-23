@@ -1,12 +1,21 @@
-"""Minimal MLflow registry adapter; imports MLflow only when used."""
-import os
+"""Minimal MLflow registry adapter using model version aliases (not deprecated stages).
+
+MLflow is imported only when used. The tracking URI comes from the argument, then from
+the ``MLFLOW_TRACKING_URI`` setting.
+"""
 
 
 class ModelRegistry:
-    def __init__(self, tracking_uri: str | None = None):
-        self.tracking_uri = tracking_uri or os.getenv("MLFLOW_TRACKING_URI")
+    def __init__(self, tracking_uri: str | None = None, client=None):
+        if tracking_uri is None:
+            from credit_risk_model.config import get_settings
+            tracking_uri = get_settings().mlflow_tracking_uri
+        self.tracking_uri = tracking_uri
+        self._injected_client = client
 
     def _client(self):
+        if self._injected_client is not None:
+            return self._injected_client
         try:
             import mlflow
             from mlflow.tracking import MlflowClient
@@ -16,14 +25,16 @@ class ModelRegistry:
             mlflow.set_tracking_uri(self.tracking_uri)
         return MlflowClient()
 
-    def latest_version(self, model_name: str, stage: str | None = None):
-        client = self._client()
-        versions = client.get_latest_versions(model_name, stages=[stage] if stage else None)
-        if not versions:
-            raise LookupError(f"No registered versions for {model_name}")
-        return max(versions, key=lambda v: int(v.version))
+    def version_for_alias(self, model_name: str, alias: str = "champion"):
+        """Return the model version currently pointed to by ``alias``."""
+        try:
+            return self._client().get_model_version_by_alias(model_name, alias)
+        except Exception as exc:
+            raise LookupError(f"No version of {model_name} has alias {alias!r}") from exc
 
-    def transition(self, model_name: str, version: str, stage: str, *, archive_existing: bool = True):
-        return self._client().transition_model_version_stage(
-            name=model_name, version=version, stage=stage,
-            archive_existing_versions=archive_existing)
+    def set_alias(self, model_name: str, version: str, alias: str = "champion"):
+        """Point ``alias`` at ``version`` (replaces the deprecated stage transition)."""
+        self._client().set_registered_model_alias(model_name, alias, str(version))
+
+    def delete_alias(self, model_name: str, alias: str):
+        self._client().delete_registered_model_alias(model_name, alias)

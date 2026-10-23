@@ -1,0 +1,12 @@
+# Default owners for everything in the repository.
+*                                   @DwaipayanDutta @DataDynamoShweta
+
+# Governance: owned by Dwaipayan.
+/governance/                        @DwaipayanDutta
+/src/credit_risk_model/governance/  @DwaipayanDutta
+/docs/GOVERNANCE.md                 @DwaipayanDutta
+
+# Inventory approvals and validation evidence need the validator (Shweta).
+/governance/model_inventory.yaml    @DwaipayanDutta @DataDynamoShweta
+/src/credit_risk_model/validation/  @DataDynamoShweta
+/reports/                           @DataDynamoShweta

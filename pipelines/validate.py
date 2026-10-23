@@ -1,6 +1,7 @@
 """Run validation against a labelled CSV and write a Markdown report."""
 import argparse
 import json
+from pathlib import Path
 
 import pandas as pd
 
@@ -16,6 +17,7 @@ def main():
     p.add_argument("--model", default="artifacts/champion.joblib")
     p.add_argument("--target", default="target")
     p.add_argument("--report", default="reports/validation_report.md")
+    p.add_argument("--export-pdf", default=None, help="Optional PDF output path")
     args=p.parse_args()
     if args.data:
         frame=pd.read_csv(args.data)
@@ -29,6 +31,12 @@ def main():
              "calibration":calibration(y,probs)}
     build_markdown(args.report, model_name="Logistic regression champion",
                    purpose="Probability-of-default estimation", results=results)
+    if args.export_pdf:
+        from credit_risk_model.governance.pdf_export import export_pdf
+        try:
+            export_pdf(Path(args.report), Path(args.export_pdf))
+        except Exception as exc:  # noqa: BLE001 - PDF export is best-effort
+            print(f"[validate] PDF skipped: {exc}")
     print(json.dumps(results, indent=2))
 if __name__ == "__main__":
     main()

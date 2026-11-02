@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Credit Risk Model · Agentic HLD & LLD</title>
+<style>
+:root{--red:#e63820;--blue:#075b9b;--ink:#111;--muted:#5c6268;--line:#cbc7c1;--paper:#fff;--panel:#f1f0ee;--soft:#f8f7f5;--shadow:0 2px 5px #0001}
+*{box-sizing:border-box}
+body{margin:0;background:#e9e8e6;color:var(--ink);font:13px Arial,Helvetica,sans-serif}
+.page{max-width:1500px;margin:18px auto;background:white;box-shadow:0 4px 22px #0002;padding:34px 46px;min-height:100vh}
+.mast{display:grid;grid-template-columns:1fr auto;gap:22px;border-bottom:2px solid var(--red);padding-bottom:14px}
+.mast h1{font-size:30px;font-weight:500;line-height:1.05;color:var(--red);margin:0}
+.mast p{max-width:850px;font-size:13px;line-height:1.5;font-weight:600;margin:9px 0}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;align-content:end;font-size:11px}
+.key{display:flex;gap:7px;align-items:center}
+.sq{width:11px;height:11px;background:var(--red)}
+.sq.blue{background:var(--blue)}
+.sq.gray{background:#aaa}
+.circle{width:11px;height:11px;border-radius:50%;background:#111}
+.diamond{width:10px;height:10px;border:2px solid var(--red);transform:rotate(45deg)}
+.toolbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;padding:12px 0}
+.pill,.tab,.action{border:1px solid #aaa;background:#fff;padding:6px 10px;font-size:11px;cursor:pointer;color:#111}
+.pill{border-radius:18px}
+.pill b{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:#111;color:white;margin-right:5px}
+.pill.active,.pill:hover{box-shadow:inset 0 0 0 1px #111;background:#fff5f3}
+.action{border:1px solid #111;border-radius:14px}
+.action.primary{background:#111;color:white}
+.search{border:1px solid #aaa;border-radius:12px;padding:6px 10px;font-size:11px;width:170px}
+.status{margin-left:auto;color:#666;font-size:10px}
+.tabs{display:flex;overflow:auto;position:sticky;top:0;background:white;z-index:10;border-bottom:1px solid #bbb;margin-bottom:14px}
+.tab{border:0;border-bottom:3px solid transparent;padding:10px 15px;white-space:nowrap}
+.tab.active{border-bottom-color:var(--red);color:var(--red);font-weight:bold}
+.view{display:none}
+.view.active{display:block}
+.zone{background:var(--panel);border-radius:9px;padding:12px;margin:10px 0}
+.zone-title{font-weight:bold;font-size:12px;margin-bottom:10px}
+.zone-no{display:inline-grid;place-items:center;background:var(--red);color:white;font-size:9px;width:20px;height:16px;border-radius:3px;margin-right:7px}
+.note-right{float:right;color:#777;font-size:9px;font-weight:normal}
+.grid{display:grid;gap:10px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.architecture{display:grid;grid-template-columns:190px minmax(420px,1.4fr) minmax(340px,1fr);gap:12px}
+.card{background:white;border:1px solid #cec9c3;border-radius:8px;padding:12px;min-height:80px;box-shadow:var(--shadow);position:relative;cursor:pointer;transition:opacity .15s,transform .15s}
+.card:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;background:var(--blue);border-radius:3px}
+.card.agent:before{background:var(--red)}
+.card.approval{border-color:var(--red)}
+.card.dark{background:#050505;color:white}
+.card.dark:before{background:white}
+.card h4{font-size:12px;margin:0 0 7px 8px}
+.card p{font-size:10px;line-height:1.4;color:#50555a;margin:0 0 0 8px}
+.card.dark p{color:#ddd}
+.tags{margin:8px 0 0 8px;display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:8.5px;color:#777;background:#efeeeb;padding:3px 6px;border-radius:8px}
+.engine{background:var(--red);color:white;border-radius:8px;padding:15px;margin-bottom:12px}
+.engine.blue{background:var(--blue)}
+.engine h3{margin:0 0 5px;font-size:13px}
+.engine p{font-size:10px;margin:0}
+.agents{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.runtime,.tools{border:2px solid #555;border-radius:9px;padding:12px;background:#fff}
+.tools{border-color:var(--blue)}
+.toolgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bottom{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.spine{border:1px solid #bbb;border-radius:7px;padding:9px 12px;margin-top:10px;background:#fff;font-size:10px}
+.journey{display:grid;grid-template-columns:repeat(7,1fr)}
+.journey .step{padding:9px;border-right:1px solid #ccc;min-height:112px}
+.stepnum{width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#111;color:white;font-weight:bold;margin-bottom:9px}
+.journey h4{font-size:12px;margin:0 0 6px}
+.journey p{font-size:10px;line-height:1.35;color:#555}
+.callouts{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:18px}
+.callout{background:#f2f1ef;padding:15px;border-left:4px solid var(--blue)}
+.callout.red{border-left-color:var(--red)}
+.callout h3{color:var(--red);font-size:14px;margin:0 0 7px}
+.section{border-top:2px solid var(--red);margin-top:22px;padding-top:12px}
+.section h2{color:var(--red);font-size:23px;font-weight:500;margin:0 0 5px}
+.intro{font-size:11px;color:#555;margin-bottom:14px}
+.matrix{width:100%;border-collapse:collapse;font-size:11px}
+.matrix th{background:#111;color:white;text-align:left;padding:8px}
+.matrix td{border-bottom:1px solid #d5d1cc;padding:8px;vertical-align:top}
+.matrix tr:nth-child(even) td{background:#f5f4f2}
+.detail-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.detail{border:1px solid #cbc6c0;border-radius:7px;padding:13px;background:white}
+.detail h3{margin:0 0 8px;color:var(--red);font-size:13px}
+.detail p,.detail li{font-size:10.5px;line-height:1.45}
+.code{background:#111;color:#f4f4f4;padding:13px;border-radius:6px;font:11px/1.5 Consolas,monospace;white-space:pre-wrap;overflow:auto}
+.sequence{display:grid;grid-template-columns:180px 1fr;gap:12px}
+.lane{background:#f1f0ee;border-radius:8px;padding:10px}
+.event{background:white;border-left:4px solid var(--blue);padding:8px;margin:7px 0;border-radius:4px;box-shadow:var(--shadow);font-size:10px}
+.event.red{border-color:var(--red)}
+.phase{display:grid;grid-template-columns:54px 1fr auto;gap:12px;align-items:start;padding:12px;border-bottom:1px solid #d3cec8}
+.phase-no{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#111;color:white;font-weight:bold}
+.phase h3{margin:0;color:var(--red)}
+.gate{border:1px solid var(--blue);color:var(--blue);border-radius:14px;padding:4px 8px;font-size:9px}
+.highlight{outline:4px solid #ffd028!important;transform:translateY(-2px);box-shadow:0 5px 18px #0003!important}
+.dim{opacity:.2}
+.approval-visible .approval{animation:pulse 1s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px #e6382033}}
+.footer{border-top:1px solid #aaa;margin-top:26px;padding-top:10px;display:flex;justify-content:space-between;font-size:9px;color:#666}
+.hidden-search{display:none!important}
+.search-hit{background:#fff3cd}
+@media(max-width:1000px){
+.page{margin:0;padding:24px 18px}
+.mast{grid-template-columns:1fr}
+.architecture{grid-template-columns:1fr}
+.g4,.g3,.detail-grid,.bottom,.journey{grid-template-columns:1fr 1fr}
+.legend{grid-template-columns:1fr 1fr}
+}
+@media(max-width:620px){
+.g4,.g3,.g2,.agents,.toolgrid,.detail-grid,.bottom,.journey,.callouts{grid-template-columns:1fr}
+.mast h1{font-size:25px}
+.page{padding:18px 10px}
+.journey .step{border-right:0;border-bottom:1px solid #ccc}
+.sequence{grid-template-columns:1fr}
+}
+@media print{
+body{background:white}
+.page{box-shadow:none;margin:0;max-width:none;padding:15mm}
+.toolbar,.tabs{display:none}
+.view{display:block!important;page-break-before:always}
+.card,.zone,.detail,.phase{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<main class="page" id="app">
+<header class="mast">
+<div>
+<h1>Credit Risk Model Platform<br>Agentic AI Orchestration</h1>
+<p>End-to-end High-Level Design and Low-Level Design. Specialist agents coordinate data intake, feature engineering, champion–challenger modelling, independent validation, explainability, governance, API delivery and monitoring while preserving model-risk controls and human approval for consequential decisions.</p>
+</div>
+<div class="legend">
+<div class="key"><i class="sq"></i> Agent / orchestration service</div>
+<div class="key"><i class="sq blue"></i> Existing system / tool</div>
+<div class="key"><i class="circle"></i> Human reviewer</div>
+<div class="key"><i class="sq gray"></i> Data / governance plane</div>
+<div class="key"><i class="diamond"></i> Human checkpoint</div>
+<div class="key">┈ Approval-gated promotion</div>
+</div>
+</header>
+
+<div class="toolbar">
+<span>Follow one lifecycle:</span>
+<button class="pill active" data-step="0"><b>0</b> Overview</button>
+<button class="pill" data-step="1"><b>1</b> Intake</button>
+<button class="pill" data-step="2"><b>2</b> Prepare</button>
+<button class="pill" data-step="3"><b>3</b> Train</button>
+<button class="pill" data-step="4"><b>4</b> Validate</button>
+<button class="pill" data-step="5"><b>5</b> Govern</button>
+<button class="pill" data-step="6"><b>6</b> Serve</button>
+<button class="pill" data-step="7"><b>7</b> Monitor</button>
+<button class="action primary" id="play">▶ Play flow</button>
+<button class="action" id="approvals">Show approvals</button>
+<button class="action" id="everything">Show everything</button>
+<button class="action" id="print">Print / PDF</button>
+<input class="search" id="search" placeholder="Find agent, API, state...">
+<span class="status" id="status">Overview</span>
+</div>
+<p class="intro">Select a stage or architecture card to inspect its responsibility, dependencies and control boundary.</p>
+
+<nav class="tabs">
+<button class="tab active" data-view="architecture">Architecture</button>
+<button class="tab" data-view="lld">LLD</button>
+<button class="tab" data-view="api">API contracts</button>
+<button class="tab" data-view="data">Data & events</button>
+<button class="tab" data-view="phases">Implementation</button>
+<button class="tab" data-view="operations">Operations</button>
+</nav>
+
+<!-- ============ ARCHITECTURE ============ -->
+<div id="architecture" class="view active searchable">
+<section class="zone">
+<div class="zone-title"><span class="zone-no">01</span>Agent control, model registry and governance plane <span class="note-right">Versioned workflow · auditable evidence</span></div>
+<div class="grid g4">
+<article class="card agent" data-stages="1,2"><h4>Workflow Studio / Config</h4><p>Defines agent sequence, dataset, target, split policy, model choices, budgets and run parameters.</p><div class="tags"><span class="tag">Versioned config</span><span class="tag">Schema validated</span></div></article>
+<article class="card agent" data-stages="3,5,6"><h4>Model & Agent Registry</h4><p>Tracks model versions, experiment IDs, prompts, agent versions, artifacts and deployment eligibility.</p></article>
+<article class="card" data-stages="1,4,5"><h4>Data & Evidence Plane</h4><p>Input fingerprints, feature contracts, split manifests, validation outputs, reports and artifact hashes.</p><div class="tags"><span class="tag">Lineage</span><span class="tag">Immutable evidence</span></div></article>
+<article class="card" data-stages="1,2,3,4,5,6,7"><h4>Governance & Observability</h4><p>RBAC, policy checks, audit events, traces, metrics, risk controls, approvals and execution budgets.</p></article>
+</div>
+</section>
+
+<div class="architecture">
+<section class="zone">
+<div class="zone-title"><span class="zone-no">02</span>Run triggers</div>
+<article class="card" data-stages="1"><h4>UI / API request</h4><p>Analyst submits workflow configuration and dataset reference.</p></article>
+<article class="card" data-stages="1"><h4>Scheduled validation</h4><p>Governed cadence initiates retrain / validation run.</p></article>
+<article class="card" data-stages="1"><h4>Dataset arrival</h4><p>New data snapshot, schema version and source lineage.</p></article>
+<article class="card" data-stages="1"><h4>Manual rerun</h4><p>Operator requests a new run linked to prior run ID.</p></article>
+</section>
+
+<section class="runtime">
+<div class="zone-title"><span class="zone-no">03</span>LangGraph agent runtime</div>
+<div class="engine"><h3>LangGraph StateGraph Orchestrator</h3><p>Durable graph execution, typed state, checkpointing, conditional edges, bounded retries and terminal states.</p></div>
+<div class="agents">
+<article class="card agent" data-stages="1"><h4>Data Intake Agent</h4><p>Resolves source, verifies file, schema, target, row count, missingness and data fingerprint.</p><div class="tags"><span class="tag">Profiler</span><span class="tag">Contract</span></div></article>
+<article class="card agent" data-stages="2"><h4>Feature Engineering Agent</h4><p>Calls existing preprocessing / feature contract; checks leakage, type consistency and split strategy.</p></article>
+<article class="card agent" data-stages="3"><h4>Champion & Challenger Agents</h4><p>Run Logistic Regression and configured challenger using the repository's training pipeline and artifacts.</p></article>
+<article class="card agent" data-stages="4"><h4>Independent Validation Agent</h4><p>Evaluates holdout/OOT metrics, calibration, stability, sensitivity and champion–challenger comparison.</p></article>
+<article class="card agent" data-stages="5"><h4>Model Risk / Governance Agent</h4><p>Checks evidence completeness, inventory status, limitations, sign-off fields and promotion readiness.</p></article>
+<article class="card agent" data-stages="6"><h4>API & QA Agent</h4><p>Verifies feature contract, model loading, prediction response, security and regression tests.</p></article>
+<article class="card agent" data-stages="7"><h4>Monitoring Agent</h4><p>Calculates PSI/CSI, data quality and performance drift; raises alerts and recommends review.</p></article>
+<article class="card agent" data-stages="4,5"><h4>Report & Handoff Agent</h4><p>Assembles validation report, experiment links, evidence index and human-readable summary.</p></article>
+</div>
+<div class="card" style="margin-top:10px" data-stages="1,2,3,4,5,6,7"><h4>Shared runtime services</h4><p>Context/state schema, artifact store client, model gateway, tool wrappers, checkpoint store, event publisher, retries, run budget and cancellation.</p><div class="tags"><span class="tag">Typed state</span><span class="tag">Max steps</span><span class="tag">Idempotency</span><span class="tag">Checkpoint</span></div></div>
+</section>
+
+<section class="tools">
+<div class="zone-title"><span class="zone-no">04</span>Controlled tools and existing repository</div>
+<div class="engine blue"><h3>Credit Risk Tool Adapter Layer</h3><p>Allow-listed Python entrypoints; validates arguments, captures stdout/stderr, status, output paths and hashes.</p></div>
+<div class="toolgrid">
+<article class="card" data-stages="1,2"><h4>Data adapters</h4><p>Synthetic generator, CSV loader, LendingClub adapter and schema profiler.</p></article>
+<article class="card" data-stages="2,3"><h4>Feature / model modules</h4><p>Existing features, champion, challenger, preprocessing and feature contract.</p></article>
+<article class="card" data-stages="3"><h4>Training pipeline</h4><p><code>pipelines/train.py</code> creates champion/challenger artifacts and metadata.</p></article>
+<article class="card" data-stages="4"><h4>Validation pipeline</h4><p><code>pipelines/validate.py</code> produces metrics, OOT analysis and report.</p></article>
+<article class="card" data-stages="5,6"><h4>Inventory / Governance</h4><p><code>governance/model_inventory.yaml</code>, audit trail and promotion controls.</p></article>
+<article class="card" data-stages="6,7"><h4>FastAPI / Monitoring</h4><p>Existing prediction API, model loader, audit routes and <code>pipelines/monitor.py</code>.</p></article>
+</div>
+<article class="card approval" data-stages="5,6"><h4>Human approval gate ◇</h4><p>Model promotion, inventory activation and production deployment require explicit reviewer decision; agent recommendation is not approval.</p></article>
+</section>
+</div>
+
+<section class="zone">
+<div class="zone-title"><span class="zone-no">05</span>Existing model lifecycle and release controls</div>
+<div class="bottom">
+<article class="card" data-stages="1"><h4>Dataset snapshot</h4><p>Source CSV / generated data, schema, target definition and fingerprint.</p></article>
+<article class="card" data-stages="2,3"><h4>Train / split</h4><p>Temporal/OOT split policy; preprocessing fit only on training rows.</p></article>
+<article class="card" data-stages="3,4"><h4>Model artifacts</h4><p>Champion, challenger, feature list, metadata and training metrics.</p></article>
+<article class="card approval" data-stages="4,5"><h4>Validation & sign-off ◇</h4><p>Metrics, calibration, drift, limitations and reviewer decision.</p></article>
+<article class="card dark" data-stages="6"><h4>Inventory-gated serving</h4><p>API serves eligible champion only; no automatic approve/decline policy.</p></article>
+</div>
+</section>
+
+<div class="spine"><b>Governance & observability spine</b> · Request/run IDs · structured logs · traces · artifact hashes · role-based access · model risk controls · approval audit · cost/time limits</div>
+<div style="border-top:2px solid var(--red);margin:22px 0 13px"></div>
+<h2 style="color:var(--red);font-weight:500">Lifecycle: request to controlled model release</h2>
+<div class="journey">
+<div class="step" data-stage="1"><i class="stepnum">1</i><h4>Run requested</h4><p>API validates config, dataset reference and idempotency key.</p></div>
+<div class="step" data-stage="2"><i class="stepnum">2</i><h4>Data prepared</h4><p>Intake and feature agents inspect data and split contracts.</p></div>
+<div class="step" data-stage="3"><i class="stepnum">3</i><h4>Models trained</h4><p>Existing training pipeline produces champion/challenger artifacts.</p></div>
+<div class="step" data-stage="4"><i class="stepnum">4</i><h4>Independent validation</h4><p>Holdout/OOT, calibration, stability and performance checks.</p></div>
+<div class="step" data-stage="5"><i class="stepnum">5</i><h4>Risk reviewed</h4><p>Evidence assembled; human reviewer approves or rejects promotion.</p></div>
+<div class="step" data-stage="6"><i class="stepnum">6</i><h4>API & QA</h4><p>Inventory and contract checks; deployment remains gated.</p></div>
+<div class="step" data-stage="7"><i class="stepnum">7</i><h4>Monitor</h4><p>Drift/performance tracking; alert and retrain recommendation.</p></div>
+</div>
+
+<div class="callouts">
+<div class="callout"><h3>What agents add</h3><p>Coordinated execution, contextual summaries, failure diagnosis, evidence assembly and run-level traceability—without duplicating the established modelling/validation implementation.</p></div>
+<div class="callout red"><h3>Non-negotiable model-risk rule</h3><p>Agents can recommend. They cannot silently change target definitions, validation thresholds, model inventory status, production configuration or release decisions.</p></div>
+</div>
+</div>
+
+<!-- ============ LLD ============ -->
+<div id="lld" class="view searchable">
+<section class="section">
+<h2>Low-Level Design</h2>
+<p class="intro">Concrete service boundaries, state contract, graph routing, execution semantics, idempotency and failure handling.</p>
+<div class="detail-grid">
+<div class="detail"><h3>Workflow Command API</h3><p>Validate identity/config, normalize payload, derive request hash, enforce idempotency, persist run metadata and return run_id.</p></div>
+<div class="detail"><h3>LangGraph Orchestrator</h3><p>Typed state, graph nodes, conditional edges, checkpoint persistence, bounded retry and resumable execution.</p></div>
+<div class="detail"><h3>Agent nodes</h3><p>Each node receives minimal state, calls one allow-listed service, validates structured output and emits artifact references.</p></div>
+<div class="detail"><h3>Tool adapter</h3><p>Allow-listed pipeline invocation, timeout, output capture, process exit validation and artifact manifest.</p></div>
+<div class="detail"><h3>Artifact / Evidence service</h3><p>Registers path, SHA-256, run ID, model version, dataset fingerprint and report lineage.</p></div>
+<div class="detail"><h3>Approval service</h3><p>Decision, reviewer, timestamp, reason and expected artifact hash bind sign-off to exact evidence.</p></div>
+</div>
+</section>
+
+<section class="section">
+<h2>Runtime algorithms</h2>
+<div class="grid g2">
+<div><h3>Run acceptance</h3><div class="code">1 Authenticate caller / validate role
+2 Validate workflow schema and parameters
+3 Normalize request; compute request_hash
+4 Check Idempotency-Key + prior request_hash
+5 Create run record (QUEUED) and event
+6 Persist dataset/model configuration snapshot
+7 Return 202 {run_id, status, status_url}</div></div>
+<div><h3>LangGraph node execution</h3><div class="code">1 Load checkpointed CreditRiskState
+2 Verify run not cancelled / budget available
+3 Validate node preconditions
+4 Invoke allow-listed service or pipeline
+5 Validate output schema and exit status
+6 Register artifact + checksum + lineage
+7 Update stage, append event, checkpoint
+8 Route success / retry / failure / approval</div></div>
+<div><h3>Model promotion gate</h3><div class="code">1 Read validation report and artifact hashes
+2 Evaluate required evidence / threshold policy
+3 Set recommendation: PROMOTE / HOLD / REJECT
+4 Persist recommendation (not approval)
+5 Pause at interrupt/checkpoint
+6 Reviewer decision with identity + reason
+7 Verify approved hash matches candidate
+8 Only then update inventory / deployment workflow</div></div>
+<div><h3>Failure and recovery</h3><div class="code">1 Classify error: validation / transient / terminal
+2 Retry transient failure with bounded backoff
+3 Never retry non-idempotent action blindly
+4 Preserve logs, traceback summary and run context
+5 Checkpoint last successful stage
+6 Resume from checkpoint or create linked rerun
+7 Terminal status + alert + evidence package</div></div>
+</div>
+</section>
+
+<section class="section">
+<h2>LangGraph state machine</h2>
+<table class="matrix">
+<thead><tr><th>State / stage</th><th>Transition</th><th>Rule</th></tr></thead>
+<tbody>
+<tr><td>QUEUED</td><td>→ RUNNING / CANCELLED</td><td>Request validated and accepted.</td></tr>
+<tr><td>DATA_INTAKE</td><td>→ PREPARATION / FAILED</td><td>Schema, target, row count, fingerprint pass.</td></tr>
+<tr><td>PREPARATION</td><td>→ TRAINING / FAILED</td><td>Feature contract and split policy pass.</td></tr>
+<tr><td>TRAINING</td><td>→ VALIDATION / FAILED</td><td>Artifacts and metadata registered.</td></tr>
+<tr><td>VALIDATION</td><td>→ GOVERNANCE / HOLD</td><td>Metrics/report available; policy evaluated.</td></tr>
+<tr><td>GOVERNANCE</td><td>→ APPROVAL_PENDING / REJECTED</td><td>Evidence complete; reviewer is authoritative.</td></tr>
+<tr><td>APPROVAL_PENDING</td><td>→ APPROVED / REJECTED / EXPIRED</td><td>Approval binds candidate artifact hash.</td></tr>
+<tr><td>API_QA → MONITORING</td><td>→ SUCCEEDED / FAILED</td><td>Deployment is a separate controlled action.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="section">
+<h2>Failure, retry and compensation</h2>
+<table class="matrix">
+<thead><tr><th>Failure</th><th>LLD behavior</th></tr></thead>
+<tbody>
+<tr><td>Invalid dataset / schema</td><td>Fail fast; no model training.</td></tr>
+<tr><td>Transient I/O / service error</td><td>Bounded exponential backoff with jitter.</td></tr>
+<tr><td>Training process nonzero exit</td><td>Capture safe logs; mark stage failed; preserve prior artifacts.</td></tr>
+<tr><td>Validation threshold breach</td><td>Route HOLD; no promotion request auto-approved.</td></tr>
+<tr><td>Worker restart</td><td>Resume from checkpoint if node is safe/idempotent.</td></tr>
+<tr><td>Duplicate run request</td><td>Idempotency returns original run; hash mismatch returns conflict.</td></tr>
+<tr><td>Artifact mismatch at approval</td><td>Invalidate approval; require fresh review.</td></tr>
+</tbody>
+</table>
+</section>
+</div>
+
+<!-- ============ API ============ -->
+<div id="api" class="view searchable">
+<section class="section">
+<h2>API Contracts</h2>
+<p class="intro">Proposed integration endpoints. Additive router under <code>api/</code>; preserve existing <code>/health</code>, <code>/model-card</code>, <code>/predict</code> and <code>/audit/*</code> endpoints.</p>
+<table class="matrix">
+<thead><tr><th>Domain</th><th>Endpoint</th><th>Contract behavior</th></tr></thead>
+<tbody>
+<tr><td>Workflow</td><td>POST /workflows/credit-risk/run</td><td>Accept configuration; return 202 and run_id.</td></tr>
+<tr><td>Workflow</td><td>GET /workflows/credit-risk/{run_id}</td><td>Status, current stage, timestamps, artifacts and error summary.</td></tr>
+<tr><td>Workflow</td><td>GET /workflows/credit-risk/{run_id}/events</td><td>SSE progress and stage events.</td></tr>
+<tr><td>Workflow</td><td>POST /workflows/credit-risk/{run_id}/cancel</td><td>Cooperative cancellation.</td></tr>
+<tr><td>Workflow</td><td>POST /workflows/credit-risk/{run_id}/resume</td><td>Resume checkpoint after authorized action.</td></tr>
+<tr><td>Approval</td><td>POST /workflows/credit-risk/{run_id}/approval</td><td>Reviewer decision bound to candidate hash.</td></tr>
+<tr><td>Artifacts</td><td>GET /workflows/credit-risk/{run_id}/artifacts</td><td>Manifest and safe download references.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="section">
+<h2>Representative request contracts</h2>
+<div class="grid g2">
+<div><h3>Start workflow</h3><div class="code">POST /workflows/credit-risk/run
+{
+  "dataset":"synthetic",
+  "target":"default",
+  "champion":"logistic_regression",
+  "challenger":"hist_gradient_boosting",
+  "oot_fraction":0.20,
+  "random_seed":42,
+  "explainability":true,
+  "run_validation":true,
+  "run_monitoring":false
+}
+202 {"run_id":"crw-uuid","status":"QUEUED",
+     "status_url":"/workflows/credit-risk/crw-uuid"}</div></div>
+<div><h3>Workflow status</h3><div class="code">GET /workflows/credit-risk/crw-uuid
+200 {
+ "run_id":"crw-uuid","status":"RUNNING",
+ "current_stage":"VALIDATION",
+ "completed_stages":["INTAKE","PREPARATION","TRAINING"],
+ "artifacts":[{"name":"training_metrics.json",
+ "sha256":"...","uri":"..."}],
+ "requires_approval":false
+}</div></div>
+<div><h3>SSE event</h3><div class="code">event: stage_completed
+id: 12
+data: {"run_id":"crw-uuid","stage":"TRAINING",
+ "status":"completed","timestamp":"ISO-8601",
+ "artifact_refs":["artifacts/champion.joblib"]}</div></div>
+<div><h3>Approval decision</h3><div class="code">POST /workflows/credit-risk/crw-uuid/approval
+{
+ "decision":"APPROVE","reason":"Validation evidence reviewed",
+ "candidate_sha256":"...","expected_version":3
+}
+200 {"status":"APPROVED","reviewer":"...","version":4}</div></div>
+</div>
+</section>
+</div>
+
+<!-- ============ DATA ============ -->
+<div id="data" class="view searchable">
+<section class="section">
+<h2>Data ownership and lineage</h2>
+<table class="matrix">
+<thead><tr><th>Data object</th><th>Authority</th><th>Design</th></tr></thead>
+<tbody>
+<tr><td>Run / stage state</td><td>Workflow store + LangGraph checkpoint</td><td>Run-scoped, versioned; durable in production.</td></tr>
+<tr><td>Input dataset</td><td>CSV / configured data adapter</td><td>Dataset ID, schema, target, fingerprint and source.</td></tr>
+<tr><td>Model artifacts</td><td>Existing artifacts/ + artifact store</td><td>Champion/challenger, feature list, metadata, metrics.</td></tr>
+<tr><td>Validation evidence</td><td>reports/ + evidence manifest</td><td>Holdout/OOT, calibration, PSI/CSI, sensitivity, limitations.</td></tr>
+<tr><td>Governance</td><td>governance/model_inventory.yaml + audit</td><td>Inventory identity, status, review date, approval evidence.</td></tr>
+<tr><td>Events / logs</td><td>Event stream / structured logs</td><td>At-least-once; run_id, correlation_id, stage and timestamps.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="section">
+<h2>Event envelope and catalogue</h2>
+<div class="code">{
+ "event_id":"evt-uuid","event_type":"creditrisk.workflow.stage.v1",
+ "occurred_at":"ISO-8601","schema_version":1,
+ "run_id":"crw-uuid","correlation_id":"corr-uuid",
+ "producer":"credit-risk-orchestrator",
+ "payload":{"stage":"VALIDATION","status":"completed",
+            "artifact_refs":["reports/validation_report.md"]}
+}</div>
+<table class="matrix">
+<thead><tr><th>Event</th><th>When</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>workflow.accepted.v1</td><td>API accepted request</td><td>Run tracking and idempotency.</td></tr>
+<tr><td>stage.started.v1</td><td>Graph node begins</td><td>Progress, trace and duration.</td></tr>
+<tr><td>stage.completed.v1</td><td>Node succeeded</td><td>Output artifact registration.</td></tr>
+<tr><td>stage.failed.v1</td><td>Node terminal failure</td><td>Diagnostics and escalation.</td></tr>
+<tr><td>approval.requested.v1</td><td>Evidence is ready</td><td>Human review notification.</td></tr>
+<tr><td>approval.decided.v1</td><td>Reviewer responds</td><td>Resume graph or reject candidate.</td></tr>
+<tr><td>workflow.completed.v1</td><td>Terminal success</td><td>Final status and evidence package.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="section">
+<h2>Logical entities</h2>
+<div class="detail-grid">
+<div class="detail"><h3>Workflow run</h3><p>run_id, request_hash, config_snapshot, status, current_stage, timestamps, error and checkpoint pointer.</p></div>
+<div class="detail"><h3>Stage execution</h3><p>stage_id, agent_id, attempt, input_ref, output_ref, status, duration and logs.</p></div>
+<div class="detail"><h3>Artifact record</h3><p>artifact_id, run_id, path/URI, SHA-256, media type, producing stage and lineage.</p></div>
+<div class="detail"><h3>Approval record</h3><p>reviewer identity, decision, reason, candidate hash, expected version and timestamp.</p></div>
+<div class="detail"><h3>Agent config</h3><p>agent name/version, prompt/config revision, tool allow-list and budgets.</p></div>
+<div class="detail"><h3>Audit event</h3><p>correlation_id, event type, actor, stage, timestamp and sanitized detail.</p></div>
+</div>
+</section>
+</div>
+
+<!-- ============ PHASES ============ -->
+<div id="phases" class="view searchable">
+<section class="section">
+<h2>Implementation plan</h2>
+<p class="intro">Build in increments with an exit gate for each phase. Existing pipeline functions remain the source of truth.</p>
+<div class="phase"><i class="phase-no">0</i><div><h3>Repository contracts</h3><p>Inspect imports, pipeline CLI, artifact paths, config schema, current tests and model inventory semantics.</p></div><span class="gate">Compatibility map</span></div>
+<div class="phase"><i class="phase-no">1</i><div><h3>Workflow foundation</h3><p>Typed state, run schemas, status store, event envelope, LangGraph checkpointing and API router.</p></div><span class="gate">Run lifecycle tested</span></div>
+<div class="phase"><i class="phase-no">2</i><div><h3>Agent + tool adapters</h3><p>Intake / preparation nodes and safe wrappers around existing train/validate/monitor pipelines.</p></div><span class="gate">No duplicate logic</span></div>
+<div class="phase"><i class="phase-no">3</i><div><h3>Validation & evidence</h3><p>Structured metrics, report parsing, artifact manifest, hashes and lineage registration.</p></div><span class="gate">Reproducible evidence</span></div>
+<div class="phase"><i class="phase-no">4</i><div><h3>Governance checkpoint</h3><p>Promotion recommendation, durable pause/resume, reviewer decision and inventory gate.</p></div><span class="gate">No agent auto-approval</span></div>
+<div class="phase"><i class="phase-no">5</i><div><h3>UI streaming & controls</h3><p>HTML connects to POST run, status polling/SSE, cancellation, logs and artifact links.</p></div><span class="gate">End-to-end user flow</span></div>
+<div class="phase"><i class="phase-no">6</i><div><h3>Persistence & deployment</h3><p>Redis/Postgres checkpointing, auth, worker process, container/CI and environment config.</p></div><span class="gate">Restart/replay tested</span></div>
+<div class="phase"><i class="phase-no">7</i><div><h3>Production validation</h3><p>Security, load, cancellation, crash recovery, backup restore and model-risk acceptance.</p></div><span class="gate">Release evidence complete</span></div>
+</section>
+
+<section class="section">
+<h2>Recommended additive repository layout</h2>
+<div class="code">Credit_Risk_Model/
+├── api/
+│   ├── main.py                         # existing FastAPI app
+│   └── routers/
+│       └── workflows.py                # new workflow endpoints
+├── src/credit_risk_model/              # existing modules preserved
+├── pipelines/
+│   ├── train.py                        # existing
+│   ├── validate.py                     # existing
+│   └── monitor.py                       # existing
+├── credit_risk_agents/                  # new package
+│   ├── graph.py                         # StateGraph assembly
+│   ├── state.py                         # Typed workflow state
+│   ├── nodes/
+│   │   ├── intake.py
+│   │   ├── preparation.py
+│   │   ├── training.py
+│   │   ├── validation.py
+│   │   ├── governance.py
+│   │   ├── api_qa.py
+│   │   └── monitoring.py
+│   ├── tools/
+│   │   └── pipeline_runner.py            # allow-listed adapters
+│   ├── services/
+│   │   ├── run_store.py
+│   │   ├── event_bus.py
+│   │   └── artifact_registry.py
+│   └── schemas/
+│       └── workflow.py
+├── tests/
+│   ├── test_agent_graph.py
+│   ├── test_workflow_api.py
+│   └── test_pipeline_adapters.py
+└── docs/
+    └── AGENTIC_HLD_LLD.md</div>
+</section>
+</div>
+
+<!-- ============ OPERATIONS ============ -->
+<div id="operations" class="view searchable">
+<section class="section">
+<h2>Scaling and reliability</h2>
+<table class="matrix">
+<thead><tr><th>Workload</th><th>Scale signal</th><th>Isolation / resilience</th></tr></thead>
+<tbody>
+<tr><td>FastAPI</td><td>RPS, CPU, p95</td><td>Stateless replicas; auth and rate limits.</td></tr>
+<tr><td>Workflow workers</td><td>Queued runs, stage latency</td><td>Separate API from long-running graph execution.</td></tr>
+<tr><td>Training subprocesses</td><td>CPU/RAM, duration, queue</td><td>Concurrency limits, timeouts, isolated work dirs.</td></tr>
+<tr><td>Validation workers</td><td>Dataset size, metric runtime</td><td>Bounded parallelism and reproducible seed.</td></tr>
+<tr><td>Checkpoint store</td><td>Checkpoint write latency</td><td>Postgres/Redis backend; not in-memory for production.</td></tr>
+<tr><td>Artifact storage</td><td>Volume, upload latency</td><td>Immutable URI, hash verification and retention.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section class="section">
+<h2>Security, observability and readiness</h2>
+<div class="detail-grid">
+<div class="detail"><h3>Authorization</h3><p>Role-scoped workflow creation, status access, cancellation and reviewer-only approval.</p></div>
+<div class="detail"><h3>Data protection</h3><p>Do not log raw customer rows, credentials or feature values; use synthetic data for demo runs.</p></div>
+<div class="detail"><h3>Secrets</h3><p>Environment/secret manager; no secrets in graph state, prompts or event payloads.</p></div>
+<div class="detail"><h3>Tracing</h3><p>Correlation ID through API, graph nodes, subprocesses and artifacts; sanitized structured logs.</p></div>
+<div class="detail"><h3>Alerts</h3><p>Queue age, stuck stage, repeated failures, validation deterioration, drift and approval backlog.</p></div>
+<div class="detail"><h3>Go-live</h3><p>Idempotency, retry, cancellation, crash/restart, permissions, audit and artifact retention tested.</p></div>
+</div>
+</section>
+
+<section class="section">
+<h2>Key risks and mitigating controls</h2>
+<table class="matrix">
+<thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+<tbody>
+<tr><td>Duplicated ML logic</td><td>Agents call existing pipeline entrypoints; no reimplementation.</td></tr>
+<tr><td>Concurrent training overload</td><td>Worker queue, per-run workspaces, CPU/memory/concurrency budgets.</td></tr>
+<tr><td>Agent claims success without outputs</td><td>Verify exit code, expected artifacts and hashes before stage completion.</td></tr>
+<tr><td>Automatic model promotion</td><td>Durable approval gate; model inventory remains authoritative.</td></tr>
+<tr><td>Checkpoint loss</td><td>Persistent LangGraph checkpointer and recovery test.</td></tr>
+<tr><td>Data leakage / privacy</td><td>Input minimization, safe logs, RBAC, synthetic demo and lineage.</td></tr>
+<tr><td>Agent loop / cost growth</td><td>Max nodes, wall time, retries, token budget and explicit terminal route.</td></tr>
+</tbody>
+</table>
+</section>
+</div>
+
+<div class="footer">
+<span>Credit Risk Agentic Platform | HLD & LLD · Reference-inspired visual document</span>
+<span>Architecture proposal; validate repository contracts and production controls before deployment.</span>
+</div>
+</main>
+
+<script>
+(() => {
+  const app = document.getElementById('app');
+  const cards = [...document.querySelectorAll('[data-stages]')];
+  const pills = [...document.querySelectorAll('.pill')];
+  const statusEl = document.getElementById('status');
+  const playBtn = document.getElementById('play');
+  let timer = null;
+  let playing = false;
+
+  /* -------- helpers -------- */
+  function stageNumbers(card) {
+    return (card.dataset.stages || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean)
+      .map(Number);
+  }
+
+  function clearHighlights() {
+    cards.forEach(c => c.classList.remove('highlight', 'dim'));
+    document.querySelectorAll('.journey .step').forEach(s => s.classList.remove('highlight'));
+    document.querySelectorAll('.matrix tr').forEach(r => r.classList.remove('highlight', 'search-hit'));
+  }
+
+  function updateStatus(n) {
+    if (n === 0) {
+      statusEl.textContent = 'Overview';
+      return;
+    }
+    const activePill = pills.find(x => +x.dataset.step === n);
+    const label = activePill
+      ? activePill.textContent.replace(/^\d+\s*/, '').trim()
+      : 'Stage ' + n;
+    statusEl.textContent = `Stage ${n}: ${label}`;
+  }
+
+  /* -------- stage selection -------- */
+  function stage(n) {
+    pills.forEach(x => x.classList.toggle('active', +x.dataset.step === n));
+
+    cards.forEach(c => {
+      const stages = stageNumbers(c);
+      const on = n === 0 || stages.includes(n);
+      c.classList.toggle('highlight', n > 0 && on);
+      c.classList.toggle('dim', n > 0 && !on);
+    });
+
+    // journey steps
+    document.querySelectorAll('.journey .step').forEach(s => {
+      s.classList.toggle('highlight', n > 0 && Number(s.dataset.stage) === n);
+    });
+
+    // highlight matching table rows in LLD / API / Data / Ops views
+    document.querySelectorAll('.matrix tbody tr').forEach(tr => {
+      if (n === 0) {
+        tr.classList.remove('highlight');
+        return;
+      }
+      const text = tr.innerText.toLowerCase();
+      const stageKeywords = {
+        1: ['intake', 'dataset', 'queued', 'run'],
+        2: ['preparation', 'feature', 'split'],
+        3: ['training', 'train', 'artifact', 'champion'],
+        4: ['validation', 'metrics', 'oot', 'calibration', 'stability'],
+        5: ['governance', 'approval', 'risk', 'sign-off', 'inventory'],
+        6: ['api', 'qa', 'serving', 'predict', 'deploy', 'contract'],
+        7: ['monitor', 'drift', 'psi', 'csi', 'alert']
+      };
+      const keywords = stageKeywords[n] || [];
+      const match = keywords.some(k => text.includes(k));
+      tr.classList.toggle('highlight', match);
+    });
+
+    updateStatus(n);
+  }
+
+  /* -------- pill clicks -------- */
+  pills.forEach(x => {
+    x.onclick = () => {
+      stopPlay();
+      clearHighlights();
+      stage(+x.dataset.step);
+    };
+  });
+
+  /* -------- play flow -------- */
+  function stopPlay() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+    playing = false;
+    playBtn.textContent = '▶ Play flow';
+    playBtn.classList.add('primary');
+  }
+
+  playBtn.onclick = () => {
+    if (playing) {
+      stopPlay();
+      return;
+    }
+    clearHighlights();
+    playing = true;
+    playBtn.textContent = '⏸ Stop';
+    let n = 1;
+    stage(n);
+    timer = setInterval(() => {
+      n++;
+      if (n > 7) {
+        stopPlay();
+        stage(0);
+        clearHighlights();
+        return;
+      }
+      stage(n);
+    }, 1400);
+  };
+
+  /* -------- approvals -------- */
+  document.getElementById('approvals').onclick = (e) => {
+    app.classList.toggle('approval-visible');
+    const on = app.classList.contains('approval-visible');
+    document.querySelectorAll('.approval').forEach(x => x.classList.toggle('highlight', on));
+    e.target.textContent = on ? 'Hide approvals' : 'Show approvals';
+  };
+
+  /* -------- everything -------- */
+  document.getElementById('everything').onclick = () => {
+    stopPlay();
+    clearHighlights();
+    stage(0);
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('dim', 'highlight'));
+    document.querySelectorAll('.journey .step').forEach(s => s.classList.remove('highlight'));
+    document.querySelectorAll('.matrix tr').forEach(r => r.classList.remove('highlight', 'search-hit'));
+  };
+
+  /* -------- print -------- */
+  document.getElementById('print').onclick = () => window.print();
+
+  /* -------- card click -------- */
+  cards.forEach(c => {
+    c.addEventListener('click', () => {
+      cards.forEach(x => x.classList.remove('highlight'));
+      c.classList.add('highlight');
+      const title = c.querySelector('h4,h3')?.textContent || 'Selected component';
+      statusEl.textContent = title;
+    });
+  });
+
+  /* -------- tabs -------- */
+  const tabs = [...document.querySelectorAll('.tab')];
+  const views = [...document.querySelectorAll('.view')];
+  tabs.forEach(t => {
+    t.onclick = () => {
+      tabs.forEach(x => x.classList.toggle('active', x === t));
+      views.forEach(v => v.classList.toggle('active', v.id === t.dataset.view));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+  });
+
+  /* -------- search (fixed: hides rows/cards, keeps containers) -------- */
+  const searchInput = document.getElementById('search');
+  searchInput.oninput = (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    const searchable = document.querySelectorAll('.searchable .card, .searchable .detail, .searchable .phase, .searchable .matrix tbody tr, .searchable .journey .step');
+
+    let hits = 0;
+    searchable.forEach(el => {
+      const match = !q || el.innerText.toLowerCase().includes(q);
+      el.classList.toggle('hidden-search', !match);
+      el.classList.toggle('search-hit', !!q && match);
+      if (match && q) hits++;
+    });
+
+    // update status to show hit count
+    if (q) {
+      statusEl.textContent = `${hits} result${hits === 1 ? '' : 's'}`;
+    } else {
+      // restore stage status
+      const active = pills.find(x => x.classList.contains('active'));
+      updateStatus(active ? +active.dataset.step : 0);
+    }
+  };
+
+  /* -------- init -------- */
+  stage(0);
+  updateStatus(0);
+})();
+</script>
+</body>
+</html>

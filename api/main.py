@@ -2,15 +2,18 @@ import logging
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
+from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from api.logging_middleware import AuditLoggingMiddleware
 from api.model_loader import load_state, model_version
 from api.routers import audit as audit_router
+from api.routers import workflows as workflows_router
 from api.schemas import PredictRequest, PredictResponse
 from api.security import require_predict_token, safe_identifier
 from credit_risk_model.config import get_settings
@@ -31,8 +34,19 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(title="Credit Risk Model Validation Platform", version="0.1.0", lifespan=lifespan)
+
+# Enable CORS for local UI and external clients
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 app.add_middleware(AuditLoggingMiddleware)
 app.include_router(audit_router.router)
+app.include_router(workflows_router.router)
 
 
 def _request_id(request: Request) -> str | None:
@@ -47,7 +61,6 @@ def _error(request: Request, status: int, detail, headers=None) -> JSONResponse:
 
 @app.exception_handler(RequestValidationError)
 async def validation_handler(request: Request, exc: RequestValidationError):
-    # Only location, message and type: never the submitted input or context.
     errors = [{"loc": list(e.get("loc", [])), "msg": e.get("msg"), "type": e.get("type")}
               for e in exc.errors()]
     return _error(request, 422, errors)
@@ -62,6 +75,24 @@ async def http_handler(request: Request, exc: StarletteHTTPException):
 async def unhandled_handler(request: Request, exc: Exception):
     logger.exception("unhandled error request_id=%s", _request_id(request))
     return _error(request, 500, "Internal server error")
+
+
+@app.get("/planner", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse)
+def serve_planner():
+    repo_root = Path(__file__).resolve().parents[1]
+    candidates = [
+        repo_root / "frontend" / "credit_risk_agent_workflow_planner.html",
+        repo_root / "frontend" / "credit_risk_agent_workflow_plan.html",
+        repo_root / "credit_risk_agent_workflow_planner.html",
+        repo_root / "credit_risk_agent_workflow_plan.html",
+        repo_root.parent / "credit_risk_agent_workflow_planner.html",
+        repo_root.parent / "credit_risk_agent_workflow_plan.html",
+    ]
+    for c in candidates:
+        if c.exists():
+            return HTMLResponse(content=c.read_text(encoding="utf-8"), status_code=200)
+    return HTMLResponse("<h3>Workflow Planner UI not found</h3>", status_code=404)
 
 
 @app.get("/health")
@@ -80,7 +111,6 @@ def model_card():
     card = {
         "name": get_settings().champion_name,
         "version": model_version(),
-        # Fixed disclaimer: this is a demonstration platform, whatever the inventory says.
         "status": "not-approved-for-production",
         "model_loaded": state.loaded,
         "serving_reason": state.reason,

@@ -1,98 +1,100 @@
-# Credit Risk Model Validation Platform
+<div align="center">
+  <img src="767c34801b26a840dbb16b6156837670.jpg" alt="Credit Risk Model Banner" width="100%" style="border-radius: 8px; margin-bottom: 20px;" />
 
-> *A modular, testable toolkit for credit-risk Probability of Default (PD) modelling, validation evidence, and model governance — enhanced with agentic orchestration.*
+  # ⚡ Credit Risk Model Validation Platform
+  
+  *A modular, testable toolkit for credit-risk Probability of Default (PD) modelling, validation evidence, model governance, and agentic orchestration.*
 
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
-[![MLflow](https://img.shields.io/badge/MLflow-0194E2?style=flat-square&logo=mlflow&logoColor=white)](https://mlflow.org/)
-[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
-[![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org/)
-[![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat-square&logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
-![Status](https://img.shields.io/badge/Status-Demonstration-yellow?style=flat-square)
-
----
-
-## 📌 Table of Contents
-1. [✨ Overview](#-overview)
-2. [🔄 End-to-End Workflow Pipeline](#-end-to-end-workflow-pipeline)
-3. [🤖 Agentic Orchestration Layer](#-agentic-orchestration-layer)
-4. [✅ Core Capabilities Implemented](#-core-capabilities-implemented)
-5. [🏗️ Repository Structure](#️-repository-structure)
-6. [🚀 Quick Start Guide](#-quick-start-guide)
-7. [📡 API Reference](#-api-reference)
-8. [📊 Validation & Monitoring](#-validation--monitoring)
-9. [⚖️ Governance & Security](#️-governance--security)
-10. [🧪 Testing & CI/CD](#-testing--cicd)
-11. [🗺️ Roadmap & Limitations](#️-roadmap--limitations)
-12. [⚠️ Disclaimer](#️-disclaimer)
+  [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+  [![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+  [![scikit-learn](https://img.shields.io/badge/scikit--learn-F7931E?style=flat-square&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+  [![MLflow](https://img.shields.io/badge/MLflow-0194E2?style=flat-square&logo=mlflow&logoColor=white)](https://mlflow.org/)
+  [![LangGraph](https://img.shields.io/badge/LangGraph-1C3C3C?style=flat-square&logo=langchain&logoColor=white)](https://langchain-ai.github.io/langgraph/)
+  [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+  [![pytest](https://img.shields.io/badge/pytest-0A9EDC?style=flat-square&logo=pytest&logoColor=white)](https://pytest.org/)
+</div>
 
 ---
 
-## ✨ Overview
+## 🧭 Project Roadmap & Pipeline Timeline
 
-An end-to-end **Probability of Default (PD) modelling and validation platform**: ingest data, train champion and challenger models, generate held-out validation reports, serve scores via a gated FastAPI service, track a tamper-evident audit trail, and monitor for data/score drift.
-
-| Component | Description |
-|---|---|
-| **Champion Model** | Logistic Regression on standardised and one-hot encoded features with PDO score scaling (unweighted by default to keep outputs valid as true PDs). |
-| **Challenger Model** | HistGradientBoosting by default (Random Forest, XGBoost, LightGBM optional), benchmarked on identical held-out cohorts. |
-| **Validation Suite** | Data review, implementation checks, discrimination (AUROC, Gini, KS), calibration (Brier, Log Loss, HL-style stats), PSI/CSI, out-of-time, and vintage testing. |
-| **FastAPI Service** | Strict feature contracts, inventory-gated model loading, safe error handling, and end-to-end request tracing. |
-| **Governance & Agents** | YAML model inventory, post-model adjustment registers, hash-chained change logs, and a LangGraph agentic workflow with a human approval gate. |
-
-> **ℹ️ Note:** This is an **engineering demonstration** built on synthetic data. It is not evidence of regulatory compliance, independent model validation, or immediate production readiness.
-
----
-
-## 🔄 End-to-End Workflow Pipeline
-
-Inspired by structural multi-stage operational flows, the platform processes data through a sequential, milestone-gated lifecycle:
-
-```text
-  [QUEUED] ➔ [01 INTAKE & PROFILE] ➔ [02 TRAINING & ARTIFACTS] ➔ [03 VALIDATION & METRICS] 
-                                                                           │
-                                                                 (AUROC / KS Thresholds)
-                                                                           ▼
-                                                                [04 GOVERNANCE GATE] 
-                                                                    (Interrupt)
-                                                                           │
-                                                         ┌─────────────────┴─────────────────┐
-                                                    [APPROVED]                           [REJECTED]
-                                                         ▼                                   ▼
-                                                  [MODEL DEPLOYED]                     [PIPELINE HALT]
+```
+       [ 🚀 CREDIT RISK PLATFORM WORKFLOW ]
+                       │
+                       ▼
+               ┌───────────────┐
+               │    START      │
+               └───────┬───────┘
+                       │
+         ┌─────────────┴─────────────┐
+         │                           │
+         ▼                           ▼
+┌─────────────────┐         ┌─────────────────┐
+│  01. INTAKE     │◄───────►│  02. TRAINING   │
+│  & PROFILING    │         │  & SCALING      │
+└────────┬────────┘         └────────┬────────┘
+         │                           │
+         ▼                           ▼
+┌─────────────────┐         ┌─────────────────┐
+│  03. VALIDATION │◄───────►│  04. GOVERNANCE │
+│  & METRICS      │         │  & APPROVAL     │
+└────────┬────────┘         └────────┬────────┘
+         │                           │
+         └─────────────┬─────────────┘
+                       │
+                       ▼
+               ┌───────────────┐
+               │  05. DEPLOY   │
+               │  & MONITORING │
+               └───────────────┘
 ```
 
 ---
 
-## 🤖 Agentic Orchestration Layer
+### 01 📊 DATA INTAKE & PROFILING
+> *Validating input datasets, schema integrity, and security fingerprints.*
 
-A lightweight LangGraph coordinator layer sits on top of standard pipelines. **It does not compute metrics**; instead, it orchestrates transitions, packages evidence, and enforces review gates.
-
-* **Typed Workflow State:** Managed via `CreditRiskState` (`TypedDict`) tracking run identity, stages, metrics, and governance outcomes.
-* **Safe Subprocess Execution:** `PipelineRunner` invokes `train.py` and `validate.py` safely via modular scripts, capturing exit codes and artifacts.
-* **LLM Commentary Integration:** Uses a lightweight local LLM (<3B parameters via Ollama, e.g., `qwen2.5:3b`) to translate pre-computed metric JSON into clear, zero-shot risk commentary.
-* **Runtime Human-in-the-Loop:** Uses LangGraph `interrupt()` combined with SQLite checkpointing to pause execution at the governance stage until explicit human approval or rejection is received via API.
+* **Dataset Verification:** Automatically checks existence, headers, and target column properties.
+* **Fingerprinting:** Computes secure SHA-256 hashes for complete data provenance.
+* **Cohort Separation:** Strictly isolates held-out test and out-of-time datasets from training runs.
+* **State Initialization:** Sets up typed dictionaries (`CreditRiskState`) for robust downstream tracking.
 
 ---
 
-## ✅ Core Capabilities Implemented
+### 02 ⚙️ MODEL TRAINING & SCALING
+> *Constructing robust Champion and Challenger baseline algorithms.*
 
-### 📈 Modelling & Scoring
-- Logistic regression champion model (`class_weight=None` default).
-- PDO score scaling where higher PD maps to lower scores.
-- Tree-based challenger models with strict algorithm parameters.
-- Comprehensive training metadata tracking seeds, class weights, library versions, and data fingerprints.
+* **Champion Model:** Standardised Logistic Regression using one-hot encoded features with PDO score scaling (higher PD maps to lower scores, unweighted by default).
+* **Challenger Model:** Tree-based algorithms (HistGradientBoosting default; optional Random Forest, XGBoost, or LightGBM).
+* **Metadata Logging:** Tracks random seeds, class weights, feature lists, and library dependency versions.
 
-### 🧪 Validation Framework
-- Held-out test and out-of-time datasets completely separated from training rows.
-- Bootstrapped confidence intervals for AUROC, Gini, and Kolmogorov-Smirnov (KS) statistics.
-- Brier score, log loss, calibration-in-the-large, and population stability indexes (PSI / CSI).
+---
 
-### ⚙️ Governance & Monitoring
-- Runtime-enforced approval gating (`/approval` endpoint resumption).
-- YAML model inventory and adjustment registers.
-- Nightly automated monitoring workflow checking feature CSI and score PSI with explicit error exit codes.
+### 03 📈 VALIDATION & METRICS
+> *Rigorous testing, performance scoring, and commentary generation.*
+
+* **Discriminatory Power:** Computes AUROC, Gini, and KS coefficients with bootstrap confidence intervals.
+* **Calibration Analysis:** Measures Brier score, log loss, calibration-in-the-large, and Hosmer-Lemeshow style statistics.
+* **Stability Checks:** Evaluates Population Stability Index (PSI), Characteristic Stability Index (CSI), and quarterly vintage charts.
+* **LLM Integration:** Translates metric dictionaries into structured prose commentary via a local model (< 3B).
+
+---
+
+### 04 ⚖️ GOVERNANCE & APPROVAL GATE
+> *Human-in-the-loop control and conditional decision gates.*
+
+* **Threshold Routing:** Automatically halts execution if performance metrics fall below strict floors ($\text{AUROC} < 0.70$ or $\text{KS} < 0.30$).
+* **Durable Checkpoints:** Utilizes SQLite checkpointing via LangGraph to freeze state during review.
+* **Human Sign-Off:** Enforces that agents may only recommend, while authorized human analysts must approve production promotion via API endpoints.
+
+---
+
+### 05 🚀 SCORING API & DEPLOYMENT
+> *Inventory-gated serving, hash-chained logs, and continuous monitoring.*
+
+* **FastAPI Service:** Strict feature contract enforcement and dynamic inventory model loading.
+* **Audit Trails:** Tamper-evident, hash-chained change logs and explicit YAML model inventory records.
+* **Automated Monitoring:** Nightly check scripts assessing feature CSI and score PSI with error exit codes.
 
 ---
 
@@ -141,7 +143,7 @@ Credit_Risk_Model/
 ```bash
 pip install -r requirements.txt
 ```
-*New agentic dependencies include:* `langgraph>=0.2`, `langgraph-checkpoint-sqlite>=1.0`, `ollama>=0.3`, `pydantic>=2.0`, and `typing-extensions>=4.0`.
+*(New agentic dependencies include `langgraph>=0.2`, `langgraph-checkpoint-sqlite>=1.0`, `ollama>=0.3`, and `pydantic>=2.0`)*
 
 ### 2. Configure Local LLM (Optional for agent commentary)
 ```bash
@@ -193,27 +195,13 @@ curl -X POST http://localhost:8000/workflows/credit-risk/crw-<run_id>/approval \
 ## 📡 API Reference
 
 | Domain | Endpoint | Method & Description |
-|---|---|---|
+| :--- | :--- | :--- |
 | **Scoring** | `/predict` | `POST` — Inventory-gated model scoring under strict feature contracts. |
 | **Health** | `/health` | `GET` — Liveness and readiness system check. |
 | **Model Card** | `/model-card` | `GET` — Returns model metadata and active feature contracts. |
 | **Agents** | `/workflows/credit-risk/run` | `POST` — Initialize a new orchestrator run thread. |
 | **Agents** | `/workflows/credit-risk/{run_id}` | `GET` — Inspect stage progress, metrics, and LLM prose commentary. |
 | **Agents** | `/workflows/credit-risk/{run_id}/approval` | `POST` — Submit governance sign-off or rejection decision. |
-
----
-
-## 📊 Validation & Monitoring
-
-The validation routine outputs rigorous discriminatory power metrics (AUROC, Gini, KS with bootstrap confidence intervals) alongside stability assessments (PSI, CSI). The monitoring script runs nightly to catch performance degradation, triggering automated exit code alerts if stability bounds are breached.
-
----
-
-## ⚖️ Governance & Security
-
-* **Runtime Enforcement:** The approval gate is enforced programmatically by the graph runtime (`interrupt()`), guaranteeing that workflows cannot proceed past governance without a valid API sign-off payload.
-* **Privacy:** Raw consumer rows are never logged or exposed to the LLM. The LLM only receives aggregated JSON metric dictionaries for qualitative summary writing.
-* **Auditability:** Change logs are hash-chained, and model versions are strictly mapped against the central YAML inventory.
 
 ---
 
@@ -227,17 +215,5 @@ Tests cover graph topology and edge branching (`test_agent_graph.py`), safe subp
 
 ---
 
-## 🗺️ Roadmap & Limitations
-
-- [x] Core PD modelling, validation suite, and scoring API
-- [x] Drift monitoring and inventory-gated loading
-- [x] LangGraph agentic orchestration layer & human-in-the-loop checkpointing
-- [ ] Role-Based Access Control (RBAC) for workflow approvals
-- [ ] Postgres-backed state checkpointer for multi-node deployments
-- [ ] Server-Sent Events (SSE) stream endpoint for live stage visualization
-
----
-
 ## ⚠️ Disclaimer
-
 *This repository is an engineering demonstration. It does not constitute a fully validated commercial credit risk system, nor does it guarantee regulatory compliance or model approval. The agentic workflow layer serves to illustrate modern orchestration patterns and does not substitute for independent model risk management controls.*

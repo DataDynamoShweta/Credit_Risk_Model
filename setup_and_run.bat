@@ -116,7 +116,7 @@ echo.
 
 REM ---------- 4b. LLM dependencies + model download (Hugging Face) ----------
 echo        Installing LLM dependencies from requirements.txt...
-"%PY%" -m pip install --prefer-binary -r "%ROOT%\requirements.txt" "huggingface_hub[cli]" --quiet
+"%PY%" -m pip install --prefer-binary -r "%ROOT%\requirements.txt" --quiet
 if errorlevel 1 (
     echo [ERROR] LLM dependency installation failed.
     pause
@@ -124,10 +124,10 @@ if errorlevel 1 (
 )
 echo        Downloading %MODEL_ID% (about 6 GB; resumable, skipped if present)...
 if not exist "%ROOT%\models" mkdir "%ROOT%\models"
-"%VENV%\Scripts\huggingface-cli.exe" download %MODEL_ID% --local-dir "%HF_MODEL_DIR%"
+"%PY%" -c "from huggingface_hub import snapshot_download; snapshot_download('%MODEL_ID%', local_dir=r'%HF_MODEL_DIR%')"
 if errorlevel 1 (
     echo [ERROR] Model download failed. Check connection and free disk space.
-    echo         If authentication is required run: "%VENV%\Scripts\huggingface-cli.exe" login
+    echo         If authentication is required set HF_TOKEN in .env or run: "%VENV%\Scripts\hf.exe" auth login
     pause
     exit /b 1
 )

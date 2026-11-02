@@ -117,7 +117,7 @@ Credit_Risk_Model/
 │   ├── state.py                    # CreditRiskState TypedDict definition
 │   ├── graph.py                    # StateGraph topology and conditional edges
 │   ├── nodes/                      # Intake, training, validation, governance nodes
-│   ├── tools/                      # Subprocess pipeline runner & Ollama client
+│   ├── tools/                      # Subprocess pipeline runner & LLM client (Azure OpenAI / local Hugging Face)
 │   └── checkpoints.sqlite          # Durable local SQLite checkpointer
 │
 ├── api/
@@ -139,17 +139,14 @@ Credit_Risk_Model/
 
 ## 🚀 Quick Start Guide
 
-### 1. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-*(New agentic dependencies include `langgraph>=0.2`, `langgraph-checkpoint-sqlite>=1.0`, `ollama>=0.3`, and `pydantic>=2.0`)*
+### 1. Setup (Windows, one double-click)
+Double-click `setup.bat`. It creates `.venv`, installs `requirements.txt`, downloads
+`Qwen/Qwen2.5-3B-Instruct` from Hugging Face into `models/` (~6 GB), and copies
+`.env.example` to `.env`. It is safe to re-run.
 
-### 2. Configure Local LLM (Optional for agent commentary)
-```bash
-ollama pull qwen2.5:3b
-ollama serve
-```
+### 2. Start the API
+Double-click `run.bat` (serves `api.main:app` on http://localhost:8000). Without the
+downloaded model, agent commentary falls back to rule-based text.
 
 ### 3. Run Pipelines Manually
 ```bash

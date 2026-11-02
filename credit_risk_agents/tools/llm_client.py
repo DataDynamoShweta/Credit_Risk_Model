@@ -86,6 +86,27 @@ def _heuristic_commentary(user_prompt: str, metrics: Optional[Dict[str, Any]] = 
     )
 
 
+_HF_PIPELINE: Any = None
+_HF_TRIED = False
+
+
+def _get_hf_pipeline() -> Any:
+    """Lazily load the local Hugging Face model; returns None if unavailable."""
+    global _HF_PIPELINE, _HF_TRIED
+    if _HF_TRIED:
+        return _HF_PIPELINE
+    _HF_TRIED = True
+    root = Path(__file__).resolve().parents[2]
+    model_dir = Path(os.getenv("HF_MODEL_DIR") or root / "models" / "Qwen2.5-3B-Instruct")
+    if not model_dir.is_dir():
+        logger.debug("Local LLM directory not found: %s", model_dir)
+        return None
+    from transformers import pipeline
+
+    _HF_PIPELINE = pipeline("text-generation", model=str(model_dir), device_map="auto")
+    return _HF_PIPELINE
+
+
 def structured_chat(
     model: Optional[str] = None,
     system: str = "",
@@ -94,7 +115,7 @@ def structured_chat(
     temperature: float = 0.1,
     metrics: Optional[Dict[str, Any]] = None,
 ) -> T:
-    """Call Azure OpenAI, then Ollama, or gracefully fallback to rule-based commentary."""
+    """Call Azure OpenAI, then a local Hugging Face model, or gracefully fallback to rule-based commentary."""
     azure_api_key = os.getenv("AZURE_OPENAI_API_KEY")
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT") or os.getenv("AZURE_API_BASE")
     azure_version = os.getenv("AZURE_API_VERSION", "2023-12-01-preview")
@@ -129,22 +150,32 @@ def structured_chat(
         except Exception as exc:
             logger.warning("Azure OpenAI call failed (%s), trying local/fallback", exc)
 
-    # 2. Attempt local Ollama if available
+    # 2. Attempt local Hugging Face model (downloaded by setup.bat) if available
     try:
-        from ollama import chat as ollama_chat
-        ollama_model = model or "qwen2.5:3b"
-        response = ollama_chat(
-            model=ollama_model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
-            format=schema.model_json_schema(),
-            options={"temperature": temperature, "num_predict": 256},
-        )
-        return schema.model_validate_json(response.message.content)
+        pipe = _get_hf_pipeline()
+        if pipe is not None:
+            json_schema_prompt = (
+                f"\nReturn ONLY valid JSON matching this schema:\n"
+                f"{json.dumps(schema.model_json_schema())}\n"
+                f"Do not include markdown fences or any explanation outside JSON."
+            )
+            out = pipe(
+                [
+                    {"role": "system", "content": system + json_schema_prompt},
+                    {"role": "user", "content": user},
+                ],
+                max_new_tokens=256,
+                do_sample=temperature > 0,
+                temperature=temperature if temperature > 0 else None,
+                return_full_text=False,
+            )
+            text = out[0]["generated_text"]
+            if not isinstance(text, str):  # chat-style output
+                text = text[-1]["content"]
+            match = re.search(r"\{.*\}", text, re.DOTALL)
+            return schema.model_validate_json(match.group(0) if match else text)
     except Exception as exc:
-        logger.debug("Ollama call failed or not running: %s", exc)
+        logger.debug("Local Hugging Face call failed or model not available: %s", exc)
 
     # 3. Graceful heuristic fallback
     if issubclass(schema, RiskCommentary):

@@ -17,6 +17,12 @@ langgraph>=0.2
 openai>=1.12
 python-dotenv>=1.0
 
+# Local LLM (Hugging Face)
+transformers>=4.44
+torch>=2.1
+accelerate>=0.33
+huggingface_hub>=0.24
+
 pytest>=8.0
 pytest-asyncio>=0.23
 ruff>=0.4

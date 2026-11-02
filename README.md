@@ -140,13 +140,13 @@ Credit_Risk_Model/
 ## 🚀 Quick Start Guide
 
 ### 1. Setup (Windows, one double-click)
-Double-click `setup.bat`. It creates `.venv`, installs `requirements.txt`, downloads
+Double-click `setup_and_run.bat`. It creates `.venv`, installs `requirements.txt`, downloads
 `Qwen/Qwen2.5-3B-Instruct` from Hugging Face into `models/` (~6 GB), and copies
-`.env.example` to `.env`. It is safe to re-run.
+`.env.example` to `.env`, trains and validates the model, then starts the API and opens the frontend
+(`/planner`) and Swagger docs in your browser. It is safe to re-run.
 
-### 2. Start the API
-Double-click `run.bat` (serves `api.main:app` on http://localhost:8000). Without the
-downloaded model, agent commentary falls back to rule-based text.
+### 2. Local LLM
+Without the downloaded model, agent commentary falls back to rule-based text.
 
 ### 3. Run Pipelines Manually
 ```bash

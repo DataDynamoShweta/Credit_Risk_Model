@@ -23,6 +23,9 @@ set "MODEL_FILE=%ARTIFACTS%\champion.joblib"
 set "API_HOST=127.0.0.1"
 set "API_PORT=8000"
 set "API_URL=http://%API_HOST%:%API_PORT%"
+set "MODEL_ID=Qwen/Qwen2.5-3B-Instruct"
+set "HF_MODEL_DIR=%ROOT%\models\Qwen2.5-3B-Instruct"
+set "HF_HOME=%ROOT%\models\.hf_cache"
 
 REM ---------- Banner ----------
 echo.
@@ -37,24 +40,40 @@ echo    API       : %API_URL%
 echo  ============================================================
 echo.
 
-REM ---------- 1. Prerequisite check: Python ----------
+REM ---------- 1. Prerequisite check: Python (3.10-3.13 have prebuilt wheels) ----------
 echo [1/8] Checking Python installation...
-where python >nul 2>&1
-if errorlevel 1 (
-    echo [ERROR] Python is not installed or not on PATH.
-    echo         Install Python 3.10+ from https://www.python.org/downloads/
+set "SELPY="
+for %%V in (3.12 3.11 3.13 3.10) do (
+    if not defined SELPY (
+        py -%%V -c "import sys" >nul 2>&1
+        if not errorlevel 1 set "SELPY=py -%%V"
+    )
+)
+if not defined SELPY (
+    python -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,13) else 1)" >nul 2>&1
+    if not errorlevel 1 set "SELPY=python"
+)
+if not defined SELPY (
+    echo [ERROR] No supported Python found. Install Python 3.11 or 3.12 from
+    echo         https://www.python.org/downloads/  ^(3.14+ lacks prebuilt wheels for torch etc.^)
     pause
     exit /b 1
 )
-for /f "tokens=2" %%v in ('python --version 2^>^&1') do set "PYVER=%%v"
-echo        Detected Python %PYVER%
+echo        Using: %SELPY%
 echo.
 
-REM ---------- 2. Create venv if missing ----------
+REM ---------- 2. Create venv if missing (or unsupported version) ----------
 echo [2/8] Preparing virtual environment...
+if exist "%PY%" (
+    "%PY%" -c "import sys; sys.exit(0 if (3,10) <= sys.version_info[:2] <= (3,13) else 1)" >nul 2>&1
+    if errorlevel 1 (
+        echo        Existing .venv uses an unsupported Python - recreating...
+        rmdir /s /q "%VENV%"
+    )
+)
 if not exist "%PY%" (
     echo        Creating .venv...
-    python -m venv "%VENV%"
+    %SELPY% -m venv "%VENV%"
     if errorlevel 1 (
         echo [ERROR] Failed to create virtual environment.
         pause
@@ -79,7 +98,7 @@ echo.
 REM ---------- 4. Install project + dev deps ----------
 echo [4/8] Installing project dependencies...
 if exist "%ROOT%\pyproject.toml" (
-    "%PY%" -m pip install -e ".[dev]" --quiet
+    "%PY%" -m pip install --prefer-binary -e ".[dev]" --quiet
 ) else if exist "%ROOT%\requirements.txt" (
     "%PY%" -m pip install -r "%ROOT%\requirements.txt" --quiet
 ) else (
@@ -93,6 +112,29 @@ if errorlevel 1 (
     exit /b 1
 )
 echo        Dependencies installed.
+echo.
+
+REM ---------- 4b. LLM dependencies + model download (Hugging Face) ----------
+echo        Installing LLM dependencies from requirements.txt...
+"%PY%" -m pip install --prefer-binary -r "%ROOT%\requirements.txt" "huggingface_hub[cli]" --quiet
+if errorlevel 1 (
+    echo [ERROR] LLM dependency installation failed.
+    pause
+    exit /b 1
+)
+echo        Downloading %MODEL_ID% (about 6 GB; resumable, skipped if present)...
+if not exist "%ROOT%\models" mkdir "%ROOT%\models"
+"%VENV%\Scripts\huggingface-cli.exe" download %MODEL_ID% --local-dir "%HF_MODEL_DIR%"
+if errorlevel 1 (
+    echo [ERROR] Model download failed. Check connection and free disk space.
+    echo         If authentication is required run: "%VENV%\Scripts\huggingface-cli.exe" login
+    pause
+    exit /b 1
+)
+if exist "%ROOT%\.env.example" if not exist "%ROOT%\.env" (
+    copy "%ROOT%\.env.example" "%ROOT%\.env" >nul
+    echo        Created .env from .env.example - please review it.
+)
 echo.
 
 REM ---------- 5. Ensure folders ----------
@@ -160,6 +202,7 @@ echo.
 REM ---------- 9. Launch API ----------
 echo [8/8] Starting FastAPI service...
 echo        URL    : %API_URL%
+echo        Frontend: %API_URL%/planner
 echo        Docs   : %API_URL%/docs
 echo        Redoc  : %API_URL%/redoc
 echo        Health : %API_URL%/health
@@ -169,7 +212,7 @@ echo        This window will display live API responses.
 echo.
 
 REM Open Swagger UI in the default browser after a short delay
-start "" /min cmd /c "timeout /t 4 >nul & start %API_URL%/docs"
+start "" /min cmd /c "timeout /t 6 >nul & start %API_URL%/planner & start %API_URL%/docs"
 
 REM Launch API in its own window
 start "Credit Risk API" cmd /k ""%UVICORN%" api.main:app --host %API_HOST% --port %API_PORT% --reload"

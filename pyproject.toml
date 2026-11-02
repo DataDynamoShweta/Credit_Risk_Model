@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "credit-risk-model-validation"
 version = "0.1.0"
-description = "Modular credit risk scorecard and independent model validation toolkit"
+description = "Modular credit risk scorecard and independent model validation toolkit with LangGraph agent workflow"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -19,22 +19,25 @@ dependencies = [
   "scipy>=1.10",
   "jinja2>=3.1",
   "pydantic-settings>=2.3",
-  "pyyaml>=6.0"
+  "pyyaml>=6.0",
+  "langgraph>=0.2",
+  "openai>=1.12",
+  "python-dotenv>=1.0",
+  "httpx>=0.27"
 ]
 
 [project.optional-dependencies]
-# shap is included so the explainability tests run in CI instead of being skipped.
-dev = ["pytest>=8.0", "httpx>=0.27", "ruff>=0.4", "shap>=0.45"]
+dev = ["pytest>=8.0", "pytest-asyncio>=0.23", "httpx>=0.27", "ruff>=0.4"]
 registry = ["mlflow>=2.12"]
 pdf = ["Markdown>=3.6", "weasyprint>=62"]
-# drift.evidently_report uses the Evidently >= 0.7 API (evidently.Report, evidently.presets).
 monitoring = ["evidently>=0.7"]
 challengers = ["xgboost>=2.0", "lightgbm>=4.0"]
 explain = ["shap>=0.45"]
 all = ["credit-risk-model-validation[dev,explain,pdf]"]
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "."]
+include = ["credit_risk_model*", "credit_risk_agents*", "api*", "pipelines*"]
 
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]

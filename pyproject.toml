@@ -42,6 +42,7 @@ include = ["credit_risk_model*", "credit_risk_agents*", "api*", "pipelines*"]
 [tool.pytest.ini_options]
 pythonpath = [".", "src"]
 testpaths = ["tests"]
+addopts = "-p no:langsmith_plugin"
 
 [tool.ruff]
 line-length = 100

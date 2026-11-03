@@ -312,6 +312,18 @@ footer{
   .eyebrow{display:none}
   .top-actions button{padding:7px 10px}
 }
+
+/* LLM Settings Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(33,31,27,.45);backdrop-filter:blur(3px);z-index:999;display:none;place-items:center}
+.modal-card{background:var(--card);border:1px solid var(--line-strong);max-width:540px;width:92%;padding:26px 28px;box-shadow:0 18px 45px rgba(0,0,0,.15);position:relative}
+.form-group{margin-bottom:13px}
+.form-label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:4px;font-weight:600}
+.form-input{width:100%;padding:9px 12px;background:var(--paper);border:1px solid var(--line);font-size:13px;color:var(--ink);font-family:inherit;border-radius:2px}
+.form-input:focus{outline:none;border-color:var(--terracotta)}
+.pass-wrap{position:relative;display:flex;align-items:center;width:100%}
+.pass-wrap input{padding-right:38px}
+.pass-wrap button{position:absolute;right:4px;border:none;background:none;cursor:pointer;font-size:13px;padding:6px;color:var(--muted)}
+
 </style>
 </head>
 <body>
@@ -326,6 +338,7 @@ footer{
       </div>
     </div>
     <div class="top-actions">
+      <button id="llmSettingsBtn">⚙️ LLM Provider</button>
       <button id="exportBtn">Export run plan</button>
       <button id="resetBtn">Reset workflow</button>
     </div>
@@ -647,6 +660,61 @@ footer{
 
 <div class="toast" id="toast"></div>
 
+<!-- LLM Provider Settings Modal -->
+<div id="llmModal" class="modal-overlay">
+  <div class="modal-card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <h3 style="font-family:'Fraunces',serif; font-size:20px; margin:0;">LLM Service Provider</h3>
+      <button type="button" id="closeLlmBtn" style="border:none; background:none; font-size:20px; cursor:pointer; padding:4px 8px; color:var(--ink); line-height:1;">✕</button>
+    </div>
+    <p style="font-size:12px; color:var(--muted); margin:0 0 16px 0;">Configure the LLM service provider for Model Risk Reviewer commentary during validation.</p>
+
+    <div class="form-group">
+      <label class="form-label" for="llmProvider">Provider</label>
+      <select id="llmProvider" class="form-input">
+        <option value="auto">Auto / System Default (.env / Azure / Local / Rules)</option>
+        <option value="azure">Azure OpenAI</option>
+        <option value="openai">OpenAI Direct</option>
+        <option value="ollama">Ollama (Local Server)</option>
+        <option value="custom">Custom OpenAI-compatible (Groq / vLLM / LM Studio)</option>
+      </select>
+    </div>
+
+    <div id="llmKeyGroup" class="form-group">
+      <label class="form-label" for="llmApiKey">API Key</label>
+      <div class="pass-wrap">
+        <input type="password" id="llmApiKey" class="form-input" placeholder="sk-..." autocomplete="off">
+        <button type="button" id="toggleApiKey" title="Show/Hide">👁️</button>
+      </div>
+    </div>
+
+    <div id="llmEndpointGroup" class="form-group">
+      <label class="form-label" for="llmEndpoint" id="llmEndpointLabel">Endpoint URL</label>
+      <input type="text" id="llmEndpoint" class="form-input" placeholder="https://your-resource.openai.azure.com/">
+    </div>
+
+    <div id="llmModelGroup" class="form-group">
+      <label class="form-label" for="llmModel">Model / Deployment Name</label>
+      <input type="text" id="llmModel" class="form-input" placeholder="gpt-4.1 or gpt-4o">
+    </div>
+
+    <div id="llmVersionGroup" class="form-group">
+      <label class="form-label" for="llmApiVersion">API Version (Azure only)</label>
+      <input type="text" id="llmApiVersion" class="form-input" placeholder="2023-12-01-preview" value="2023-12-01-preview">
+    </div>
+
+    <div id="llmTestBadge" style="display:none; font-size:12px; padding:8px 12px; margin-top:8px; border-radius:2px; font-weight:500;"></div>
+
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:20px; gap:10px;">
+      <button type="button" id="testLlmBtn">Test Connection</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" id="resetLlmBtn" class="danger">Reset</button>
+        <button type="button" id="saveLlmBtn" class="primary">Save & Apply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let running=false,stopRequested=false,runLog=[],activeRunId=null,pollTimer=null,lastEventIndex=0;
@@ -725,7 +793,8 @@ async function startWorkflow(){
     oot_pct: Number($('#oot').value),
     seed: Number($('#seed').value),
     stages: stages.map(s => s.querySelector('h4').textContent),
-    agents: agents
+    agents: agents,
+    llm_config: getSavedLLMConfig()
   };
 
   log(`Submitting workflow request to ${endpointUrl}...`, 'info', 'CLIENT');
@@ -919,7 +988,167 @@ $('#downloadLogBtn').addEventListener('click', ()=>{
   const b = new Blob([txt], {type:'text/plain'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'credit-risk-console.log'; a.click();
 });
+
+/* LLM Configuration Manager */
+const LLM_STORAGE_KEY = 'credit_risk_llm_settings';
+
+function getSavedLLMConfig(){
+  try {
+    const raw = localStorage.getItem(LLM_STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  } catch(e){}
+  return { provider: 'auto' };
+}
+
+function saveLLMConfig(cfg){
+  localStorage.setItem(LLM_STORAGE_KEY, JSON.stringify(cfg));
+  updateLLMDisplay();
+}
+
+function updateLLMDisplay(){
+  const cfg = getSavedLLMConfig();
+  const prov = (cfg.provider || 'auto').toUpperCase();
+  const btn = $('#llmSettingsBtn');
+  if(btn) btn.textContent = `⚙️ LLM: ${prov}`;
+}
+
+function applyFormVisibility(prov){
+  const keyGroup = $('#llmKeyGroup');
+  const epGroup = $('#llmEndpointGroup');
+  const modelGroup = $('#llmModelGroup');
+  const verGroup = $('#llmVersionGroup');
+  const epLabel = $('#llmEndpointLabel');
+
+  if(prov === 'auto'){
+    keyGroup.style.display = 'none';
+    epGroup.style.display = 'none';
+    modelGroup.style.display = 'none';
+    verGroup.style.display = 'none';
+  } else if(prov === 'azure'){
+    keyGroup.style.display = 'block';
+    epGroup.style.display = 'block';
+    modelGroup.style.display = 'block';
+    verGroup.style.display = 'block';
+    epLabel.textContent = 'Azure Endpoint URL';
+    if(!$('#llmEndpoint').value) $('#llmEndpoint').placeholder = 'https://your-resource.openai.azure.com/';
+    if(!$('#llmModel').value) $('#llmModel').placeholder = 'gpt-4.1';
+  } else if(prov === 'openai'){
+    keyGroup.style.display = 'block';
+    epGroup.style.display = 'none';
+    modelGroup.style.display = 'block';
+    verGroup.style.display = 'none';
+    if(!$('#llmModel').value) $('#llmModel').placeholder = 'gpt-4o';
+  } else if(prov === 'ollama'){
+    keyGroup.style.display = 'none';
+    epGroup.style.display = 'block';
+    modelGroup.style.display = 'block';
+    verGroup.style.display = 'none';
+    epLabel.textContent = 'Ollama Base URL';
+    if(!$('#llmEndpoint').value) $('#llmEndpoint').value = 'http://localhost:11434/v1';
+    if(!$('#llmModel').value) $('#llmModel').placeholder = 'llama3.2';
+  } else if(prov === 'custom'){
+    keyGroup.style.display = 'block';
+    epGroup.style.display = 'block';
+    modelGroup.style.display = 'block';
+    verGroup.style.display = 'none';
+    epLabel.textContent = 'API Base URL';
+    if(!$('#llmEndpoint').value) $('#llmEndpoint').placeholder = 'https://api.groq.com/openai/v1';
+    if(!$('#llmModel').value) $('#llmModel').placeholder = 'model-name';
+  }
+}
+
+function populateLLMForm(){
+  const cfg = getSavedLLMConfig();
+  $('#llmProvider').value = cfg.provider || 'auto';
+  $('#llmApiKey').value = cfg.api_key || '';
+  $('#llmEndpoint').value = cfg.endpoint || '';
+  $('#llmModel').value = cfg.model || '';
+  $('#llmApiVersion').value = cfg.api_version || '2023-12-01-preview';
+  applyFormVisibility(cfg.provider || 'auto');
+  $('#llmTestBadge').style.display = 'none';
+}
+
+$('#llmSettingsBtn').addEventListener('click', ()=>{
+  populateLLMForm();
+  $('#llmModal').style.display = 'grid';
+});
+
+const closeLLMModal = () => { $('#llmModal').style.display = 'none'; };
+$('#closeLlmBtn').addEventListener('click', closeLLMModal);
+$('#llmModal').addEventListener('click', (e) => { if(e.target === $('#llmModal')) closeLLMModal(); });
+
+$('#llmProvider').addEventListener('change', (e)=>{
+  applyFormVisibility(e.target.value);
+  $('#llmTestBadge').style.display = 'none';
+});
+
+$('#toggleApiKey').addEventListener('click', ()=>{
+  const input = $('#llmApiKey');
+  input.type = input.type === 'password' ? 'text' : 'password';
+});
+
+$('#resetLlmBtn').addEventListener('click', ()=>{
+  localStorage.removeItem(LLM_STORAGE_KEY);
+  populateLLMForm();
+  updateLLMDisplay();
+  toast('LLM settings reset to System Default.');
+});
+
+$('#saveLlmBtn').addEventListener('click', ()=>{
+  const cfg = {
+    provider: $('#llmProvider').value,
+    api_key: $('#llmApiKey').value.trim() || null,
+    endpoint: $('#llmEndpoint').value.trim() || null,
+    model: $('#llmModel').value.trim() || null,
+    api_version: $('#llmApiVersion').value.trim() || null
+  };
+  saveLLMConfig(cfg);
+  $('#llmModal').style.display = 'none';
+  toast(`LLM Provider set to ${cfg.provider.toUpperCase()}`);
+});
+
+$('#testLlmBtn').addEventListener('click', async ()=>{
+  const badge = $('#llmTestBadge');
+  badge.style.display = 'block';
+  badge.style.background = '#fef3c7';
+  badge.style.color = '#92400e';
+  badge.textContent = 'Testing connection...';
+
+  const cfg = {
+    provider: $('#llmProvider').value,
+    api_key: $('#llmApiKey').value.trim() || null,
+    endpoint: $('#llmEndpoint').value.trim() || null,
+    model: $('#llmModel').value.trim() || null,
+    api_version: $('#llmApiVersion').value.trim() || null
+  };
+
+  try {
+    const res = await fetch(apiBase() + '/workflows/test-llm', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(cfg)
+    });
+    const data = await res.json();
+    if(data.ok){
+      badge.style.background = '#d1fae5';
+      badge.style.color = '#065f46';
+      badge.textContent = '✅ ' + (data.message || 'Connection successful');
+    } else {
+      badge.style.background = '#fee2e2';
+      badge.style.color = '#991b1b';
+      badge.textContent = '❌ ' + (data.error || 'Connection failed');
+    }
+  } catch(err){
+    badge.style.background = '#fee2e2';
+    badge.style.color = '#991b1b';
+    badge.textContent = '❌ Request failed: ' + err.message;
+  }
+});
+
+updateLLMDisplay();
+
 refreshCounts();
 </script>
+
 </body>
 </html>

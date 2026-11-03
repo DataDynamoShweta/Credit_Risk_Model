@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import datetime
 import json
-from typing import Any, Dict, List
+from typing import Any
+
 from credit_risk_agents.state import CreditRiskState
 from credit_risk_agents.tools.llm_client import RiskCommentary, structured_chat
 from credit_risk_agents.tools.pipeline_runner import PipelineRunner
@@ -17,7 +18,7 @@ def validation_node(state: CreditRiskState) -> CreditRiskState:
     run_id = state.get("run_id", "default")
     runner = PipelineRunner(run_id=run_id)
 
-    events: List[Dict[str, Any]] = [
+    events: list[dict[str, Any]] = [
         {
             "time": _now(),
             "type": "info",
@@ -35,13 +36,15 @@ def validation_node(state: CreditRiskState) -> CreditRiskState:
 
     if not result.ok or not result.metrics:
         err_msg = f"Validation failed (exit code {result.exit_code}): {result.stderr[-400:] if result.stderr else 'Metric extraction failed'}"
-        events.append({
-            "time": _now(),
-            "type": "error",
-            "stage": "validation",
-            "agent": "Validation",
-            "msg": err_msg,
-        })
+        events.append(
+            {
+                "time": _now(),
+                "type": "error",
+                "stage": "validation",
+                "agent": "Validation",
+                "msg": err_msg,
+            }
+        )
         return {
             "current_stage": "failed",
             "error_message": err_msg,
@@ -54,23 +57,29 @@ def validation_node(state: CreditRiskState) -> CreditRiskState:
     psi = metrics.get("psi", 0.0)
     brier = metrics.get("brier", 0.0)
 
-    events.append({
-        "time": _now(),
-        "type": "ok",
-        "stage": "validation",
-        "agent": "Validation",
-        "msg": f"Validation metrics: AUROC={auroc:.4f}, KS={ks:.4f}, Brier={brier:.4f}, PSI={psi:.4f}",
-    })
+    events.append(
+        {
+            "time": _now(),
+            "type": "ok",
+            "stage": "validation",
+            "agent": "Validation",
+            "msg": f"Validation metrics: AUROC={auroc:.4f}, KS={ks:.4f}, Brier={brier:.4f}, PSI={psi:.4f}",
+        }
+    )
 
-    events.append({
-        "time": _now(),
-        "type": "info",
-        "stage": "validation",
-        "agent": "Model Risk Reviewer",
-        "msg": "Generating model risk commentary using LLM (Azure OpenAI / local fallback)",
-    })
+    llm_cfg = state.get("llm_config")
+    prov_name = (llm_cfg.get("provider") if llm_cfg else "auto") or "auto"
+    events.append(
+        {
+            "time": _now(),
+            "type": "info",
+            "stage": "validation",
+            "agent": "Model Risk Reviewer",
+            "msg": f"Generating model risk commentary using LLM provider: {prov_name.upper()}",
+        }
+    )
 
-    # Call LLM client (Azure OpenAI with structured output and graceful fallback)
+    # Call LLM client (Azure OpenAI, OpenAI, Ollama, local model, or graceful fallback)
     system_prompt = (
         "You are an executive model risk officer reviewing a credit risk scorecard. "
         "Review the quantitative validation metrics and return a structured assessment."
@@ -86,15 +95,18 @@ def validation_node(state: CreditRiskState) -> CreditRiskState:
         user=user_prompt,
         schema=RiskCommentary,
         metrics=metrics,
+        llm_config=llm_cfg,
     )
 
-    events.append({
-        "time": _now(),
-        "type": "info" if commentary.recommendation == "PROCEED" else "warn",
-        "stage": "validation",
-        "agent": "Model Risk Reviewer",
-        "msg": f"Risk assessment: {commentary.recommendation} · {commentary.summary[:140]}...",
-    })
+    events.append(
+        {
+            "time": _now(),
+            "type": "info" if commentary.recommendation == "PROCEED" else "warn",
+            "stage": "validation",
+            "agent": "Model Risk Reviewer",
+            "msg": f"Risk assessment: {commentary.recommendation} · {commentary.summary[:140]}...",
+        }
+    )
 
     artifacts = dict(state.get("artifact_paths") or {})
     artifacts.update(result.artifact_paths)
@@ -107,4 +119,3 @@ def validation_node(state: CreditRiskState) -> CreditRiskState:
         "stages_completed": ["validation"],
         "events": events,
     }
-

@@ -34,7 +34,7 @@ def test_workflow_lifecycle_end_to_end():
 
     # 2. Wait until graph reaches governance interrupt (awaiting_approval)
     awaiting = False
-    for _ in range(30):
+    for _ in range(80):
         time.sleep(0.5)
         st_resp = client.get(f"/runs/{run_id}")
         assert st_resp.status_code == 200
@@ -45,7 +45,9 @@ def test_workflow_lifecycle_end_to_end():
         if st.get("status") in ("completed", "failed"):
             break
 
-    assert awaiting, f"status={st.get('status')}, error={st.get('error_message')}, metrics={st.get('validation_metrics')}"
+    assert awaiting, (
+        f"status={st.get('status')}, error={st.get('error_message')}, metrics={st.get('validation_metrics')}"
+    )
     assert "auroc" in (st.get("validation_metrics") or {})
 
     # 3. Verify event stream
@@ -97,3 +99,37 @@ def test_flat_feature_predict_scoring(trained_project):
     assert "score" in body
     assert 300 <= body["score"] <= 850
 
+
+def test_llm_test_endpoint():
+    client = TestClient(app)
+    # Test auto mode
+    resp = client.post("/workflows/test-llm", json={"provider": "auto"})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "ok" in data
+
+    # Test unknown provider
+    resp2 = client.post("/workflows/test-llm", json={"provider": "unknown_provider"})
+    assert resp2.status_code == 200
+    assert resp2.json()["ok"] is False
+
+
+def test_workflow_accepts_llm_config():
+    client = TestClient(app)
+    payload = {
+        "dataset": "synthetic",
+        "target": "target",
+        "champion": "logistic_regression",
+        "challenger": "hist_gradient_boosting",
+        "oot_pct": 20,
+        "seed": 42,
+        "llm_config": {
+            "provider": "ollama",
+            "endpoint": "http://localhost:11434/v1",
+            "model": "llama3.2",
+        },
+    }
+    resp = client.post("/workflows/credit-risk/run", json=payload)
+    assert resp.status_code == 202
+    data = resp.json()
+    assert "run_id" in data

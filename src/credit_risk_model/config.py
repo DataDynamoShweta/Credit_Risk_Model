@@ -11,7 +11,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PATH_FIELDS = ("governance_dir", "inventory_path", "audit_trail_dir", "pma_register_path",
@@ -68,6 +68,13 @@ class Settings(BaseSettings):
     max_request_bytes: int = Field(default=16_384, ge=256)
 
     mlflow_tracking_uri: str | None = None
+
+    @field_validator("model_path", "model_sha256", "mlflow_tracking_uri",
+                     "audit_api_token", "predict_api_token", mode="before")
+    @classmethod
+    def _blank_is_unset(cls, value):
+        # ``KEY=`` in .env arrives as "", which Path("") would turn into the project root.
+        return None if isinstance(value, str) and not value.strip() else value
 
     @model_validator(mode="after")
     def _resolve_paths(self):

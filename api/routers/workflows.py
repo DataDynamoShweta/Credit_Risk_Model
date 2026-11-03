@@ -5,12 +5,12 @@ import logging
 import threading
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
 from langgraph.types import Command
+from pydantic import BaseModel
 
 from credit_risk_agents.graph import graph
 
@@ -19,23 +19,23 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["agentic-workflows"])
 
 # In-memory store for run-level events in case of fast polling before state commit
-_run_events: Dict[str, List[Dict[str, Any]]] = {}
+_run_events: dict[str, list[dict[str, Any]]] = {}
 _run_lock = threading.Lock()
 
 
 # ---------------------------------------------------------------- request models
 class StartWorkflowRequest(BaseModel):
-    dataset: Optional[str] = "synthetic"
-    dataset_path: Optional[str] = None
-    target: Optional[str] = "target"
-    target_column: Optional[str] = None
-    champion: Optional[str] = "logistic_regression"
-    challenger: Optional[str] = "hist_gradient_boosting"
-    oot_pct: Optional[float] = 20.0
-    seed: Optional[int] = 42
-    random_seed: Optional[int] = None
-    stages: Optional[List[Union[str, dict]]] = None
-    agents: Optional[List[str]] = None
+    dataset: str | None = "synthetic"
+    dataset_path: str | None = None
+    target: str | None = "target"
+    target_column: str | None = None
+    champion: str | None = "logistic_regression"
+    challenger: str | None = "hist_gradient_boosting"
+    oot_pct: float | None = 20.0
+    seed: int | None = 42
+    random_seed: int | None = None
+    stages: list[str | dict] | None = None
+    agents: list[str] | None = None
 
 
 class StartWorkflowResponse(BaseModel):
@@ -47,7 +47,7 @@ class StartWorkflowResponse(BaseModel):
 
 class ApprovalRequest(BaseModel):
     decision: Literal["APPROVE", "REJECT"] = "APPROVE"
-    comment: Optional[str] = "Model approved by Model Risk Officer"
+    comment: str | None = "Model approved by Model Risk Officer"
     reviewer_id: str = "mro_officer_01"
 
 
@@ -57,7 +57,7 @@ def _execute_graph(run_id: str, initial_state: dict) -> None:
     try:
         graph.invoke(initial_state, config=config)
     except Exception as exc:
-        logger.exception("Error executing graph for run %s: %s", run_id, exc)
+        logger.exception("Error executing graph for run %s", run_id)
         with _run_lock:
             if run_id not in _run_events:
                 _run_events[run_id] = []
@@ -127,7 +127,7 @@ def run_credit_risk_workflow(payload: StartWorkflowRequest) -> StartWorkflowResp
 def get_run_events(run_id: str, since_index: int = Query(0, ge=0)) -> dict:
     config = {"configurable": {"thread_id": run_id}}
     snapshot = graph.get_state(config)
-    events: List[Dict[str, Any]] = []
+    events: list[dict[str, Any]] = []
 
     if snapshot and snapshot.values:
         events = list(snapshot.values.get("events") or [])
@@ -167,9 +167,7 @@ def get_run_status(run_id: str) -> dict:
         status = "awaiting_approval"
 
     # Progress calculation
-    if status == "completed":
-        pct = 100
-    elif status == "failed":
+    if status == "completed" or status == "failed":
         pct = 100
     elif is_awaiting_approval:
         pct = 75
@@ -221,8 +219,8 @@ def approve_run(run_id: str, payload: ApprovalRequest) -> dict:
     def _resume():
         try:
             graph.invoke(Command(resume=resume_payload), config=config)
-        except Exception as exc:
-            logger.exception("Error resuming graph for %s: %s", run_id, exc)
+        except Exception:
+            logger.exception("Error resuming graph for %s", run_id)
 
     t = threading.Thread(target=_resume, daemon=True)
     t.start()
@@ -245,7 +243,7 @@ def list_run_artifacts(run_id: str) -> dict:
         # Fallback to general artifacts dir
         run_dir = repo_root / "artifacts"
 
-    items: List[Dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
     for path in sorted(run_dir.glob("*")):
         if path.is_file():
             items.append({

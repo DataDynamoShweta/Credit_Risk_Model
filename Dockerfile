@@ -13,6 +13,8 @@ COPY src ./src
 RUN pip install --no-cache-dir .
 
 COPY api ./api
+COPY credit_risk_agents ./credit_risk_agents
+COPY frontend ./frontend
 COPY pipelines ./pipelines
 COPY scripts ./scripts
 COPY governance ./governance

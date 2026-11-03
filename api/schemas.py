@@ -1,6 +1,14 @@
 from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
+    model_validator,
+)
 
 REQUEST_ID_PATTERN = r"^[A-Za-z0-9._:-]{1,64}$"
 FeatureValue = StrictInt | StrictFloat | StrictStr

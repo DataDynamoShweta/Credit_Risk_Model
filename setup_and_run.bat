@@ -211,15 +211,19 @@ echo        A new window will open. Keep it open while testing.
 echo        This window will display live API responses.
 echo.
 
-REM Open Swagger UI in the default browser after a short delay
-start "" /min cmd /c "timeout /t 6 >nul & start %API_URL%/planner & start %API_URL%/docs"
-
-REM Launch API in its own window
+REM Launch API in its own window (the frontend UI is served by the API at /planner)
 start "Credit Risk API" cmd /k ""%UVICORN%" api.main:app --host %API_HOST% --port %API_PORT% --reload"
 
-REM Give the API time to boot
+REM Wait until the API answers /health (up to ~90s), then open the frontend
 echo        Waiting for API to become ready...
-timeout /t 8 /nobreak >nul
+powershell -NoProfile -Command "$ok=$false; for($i=0;$i -lt 45;$i++){ try { Invoke-RestMethod -Uri '%API_URL%/health' -TimeoutSec 2 | Out-Null; $ok=$true; break } catch { Start-Sleep -Seconds 2 } }; if($ok){ exit 0 } else { exit 1 }"
+if errorlevel 1 (
+    echo [WARN] API did not respond within 90s - check the "Credit Risk API" window.
+) else (
+    echo        API is up. Opening frontend and API docs in browser...
+    start "" "%API_URL%/planner"
+    start "" "%API_URL%/docs"
+)
 
 REM ---------- 10. Smoke tests ----------
 echo.

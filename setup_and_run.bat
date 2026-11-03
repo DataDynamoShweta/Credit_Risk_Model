@@ -221,7 +221,7 @@ if errorlevel 1 (
     echo [WARN] API did not respond within 90s - check the "Credit Risk API" window.
 ) else (
     echo        API is up. Opening frontend and API docs in browser...
-    start "" "%API_URL%/planner"
+    start "" "%ROOT%\frontend\credit_risk_agent_workflow_planner.html"
     start "" "%API_URL%/docs"
 )
 

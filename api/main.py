@@ -32,6 +32,7 @@ async def lifespan(app: FastAPI):
     logger.info("startup environment=%s model_loaded=%s reason=%s",
                 settings.environment, state.loaded, state.reason)
     yield
+    workflows_router.join_workers()
 
 app = FastAPI(title="Credit Risk Model Validation Platform", version="0.1.0", lifespan=lifespan)
 

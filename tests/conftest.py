@@ -67,3 +67,11 @@ def trained_project(project, trained_artifacts):
                     project / "governance" / "audit_trail")
     _reset_caches()
     return project
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _join_workflow_threads():
+    """Let background workflow threads finish before interpreter teardown."""
+    yield
+    from api.routers.workflows import join_workers
+    join_workers()

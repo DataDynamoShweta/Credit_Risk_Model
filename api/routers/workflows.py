@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import threading
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Literal
@@ -21,6 +22,40 @@ router = APIRouter(tags=["agentic-workflows"])
 # In-memory store for run-level events in case of fast polling before state commit
 _run_events: dict[str, list[dict[str, Any]]] = {}
 _run_lock = threading.Lock()
+
+# Background workers are tracked (and non-daemon) so they can be joined on shutdown;
+# daemon threads killed mid-native-call abort the interpreter at exit.
+_workers: set[threading.Thread] = set()
+
+
+def _start_worker(target, *args) -> threading.Thread:
+    def _run():
+        try:
+            target(*args)
+        finally:
+            with _run_lock:
+                _workers.discard(threading.current_thread())
+
+    t = threading.Thread(target=_run, daemon=False)
+    with _run_lock:
+        _workers.add(t)
+    t.start()
+    return t
+
+
+def join_workers(timeout: float = 60.0) -> None:
+    """Wait for in-flight workflow threads (called on app shutdown and by tests)."""
+    deadline = time.monotonic() + timeout
+    while True:
+        with _run_lock:
+            pending = list(_workers)
+        if not pending:
+            return
+        for t in pending:
+            t.join(max(0.0, deadline - time.monotonic()))
+        if time.monotonic() >= deadline:
+            logger.warning("%d workflow thread(s) still running at shutdown", len(pending))
+            return
 
 
 # ---------------------------------------------------------------- request models
@@ -118,8 +153,7 @@ def run_credit_risk_workflow(payload: StartWorkflowRequest) -> StartWorkflowResp
         _run_events[run_id] = []
 
     # Run graph asynchronously in background thread
-    t = threading.Thread(target=_execute_graph, args=(run_id, initial_state), daemon=True)
-    t.start()
+    _start_worker(_execute_graph, run_id, initial_state)
 
     return StartWorkflowResponse(
         run_id=run_id,
@@ -272,8 +306,7 @@ def approve_run(run_id: str, payload: ApprovalRequest) -> dict:
         except Exception:
             logger.exception("Error resuming graph for %s", run_id)
 
-    t = threading.Thread(target=_resume, daemon=True)
-    t.start()
+    t = _start_worker(_resume)
     t.join(timeout=10.0)
 
     final = graph.get_state(config).values

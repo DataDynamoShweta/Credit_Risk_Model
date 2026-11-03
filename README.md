@@ -305,9 +305,9 @@ See [docs/MONITORING.md](docs/MONITORING.md).
 | `.github/workflows/ci.yml` | Lint (ruff), tests (pytest), Docker build and smoke job |
 | `.github/workflows/cd.yml` | Package and deploy workflow |
 | `.github/workflows/monitoring.yml` | Scheduled monitoring/drift check |
-| `docker compose up --build` | Local container run; currently blocked |
+| `docker compose up --build` | Local container run (compose file not tested) |
 
-Docker is blocked: the Dockerfile does not copy `credit_risk_agents/` or `frontend/`, so the image fails at start-up with `ModuleNotFoundError: No module named 'credit_risk_agents'`. See [docs/CI_CD.md](docs/CI_CD.md).
+The image builds, and `python scripts/smoke_test.py --url http://localhost:8000` passes against a container started with `docker run -p 8000:8000 -e ENVIRONMENT=ci credit-risk:ci`. See [docs/CI_CD.md](docs/CI_CD.md).
 
 <a id="data-privacy-and-security"></a>
 ## Data, privacy and security
@@ -338,7 +338,7 @@ Docker is blocked: the Dockerfile does not copy `credit_risk_agents/` or `fronte
 - [ ] Replace hard-coded agent metrics with measured validation output
 - [ ] Add authentication and RBAC to workflow endpoints
 - [ ] Add persistent checkpointing
-- [ ] Fix Dockerfile to copy `credit_risk_agents/` and `frontend/`
+- [x] Fix Dockerfile to copy `credit_risk_agents/` and `frontend/`
 - [ ] Add conceptual-soundness and fair-lending review
 
 <a id="original-notebook"></a>

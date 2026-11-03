@@ -36,6 +36,7 @@ class StartWorkflowRequest(BaseModel):
     random_seed: int | None = None
     stages: list[str | dict] | None = None
     agents: list[str] | None = None
+    llm_config: dict[str, Any] | None = None
 
 
 class StartWorkflowResponse(BaseModel):
@@ -61,13 +62,15 @@ def _execute_graph(run_id: str, initial_state: dict) -> None:
         with _run_lock:
             if run_id not in _run_events:
                 _run_events[run_id] = []
-            _run_events[run_id].append({
-                "time": "NOW",
-                "type": "error",
-                "stage": "failed",
-                "agent": "System",
-                "msg": f"Graph execution error: {exc}",
-            })
+            _run_events[run_id].append(
+                {
+                    "time": "NOW",
+                    "type": "error",
+                    "stage": "failed",
+                    "agent": "System",
+                    "msg": f"Graph execution error: {exc}",
+                }
+            )
 
 
 # ---------------------------------------------------------------- endpoints
@@ -108,6 +111,9 @@ def run_credit_risk_workflow(payload: StartWorkflowRequest) -> StartWorkflowResp
         "events": [],
     }
 
+    if payload.llm_config:
+        initial_state["llm_config"] = payload.llm_config
+
     with _run_lock:
         _run_events[run_id] = []
 
@@ -121,6 +127,13 @@ def run_credit_risk_workflow(payload: StartWorkflowRequest) -> StartWorkflowResp
         events_url=f"/runs/{run_id}/events",
         artifacts_url=f"/runs/{run_id}/artifacts",
     )
+
+
+@router.post("/workflows/test-llm")
+def test_llm_endpoint(payload: dict[str, Any]) -> dict:
+    from credit_risk_agents.tools.llm_client import test_llm_connection
+
+    return test_llm_connection(payload)
 
 
 @router.get("/runs/{run_id}/events")
@@ -154,26 +167,42 @@ def get_run_status(run_id: str) -> dict:
     snapshot = graph.get_state(config)
 
     with _run_lock:
-        crash = next((e for e in reversed(_run_events.get(run_id, []))
-                      if e.get("stage") == "failed"), None)
+        crash = next(
+            (e for e in reversed(_run_events.get(run_id, [])) if e.get("stage") == "failed"), None
+        )
         known = run_id in _run_events
 
     if crash:
         # Graph raised before/while checkpointing: report a terminal failed state.
         return {
-            "run_id": run_id, "status": "failed", "progress_pct": 100,
-            "completed_stages": (snapshot.values or {}).get("stages_completed", []) if snapshot else [],
-            "validation_metrics": None, "llm_risk_commentary": None, "artifact_paths": {},
-            "governance_status": "REJECTED", "error_message": crash["msg"],
-            "awaiting_approval": False, "next": (),
+            "run_id": run_id,
+            "status": "failed",
+            "progress_pct": 100,
+            "completed_stages": (snapshot.values or {}).get("stages_completed", [])
+            if snapshot
+            else [],
+            "validation_metrics": None,
+            "llm_risk_commentary": None,
+            "artifact_paths": {},
+            "governance_status": "REJECTED",
+            "error_message": crash["msg"],
+            "awaiting_approval": False,
+            "next": (),
         }
     if not snapshot or not snapshot.values:
         if known:  # accepted but first checkpoint not written yet
             return {
-                "run_id": run_id, "status": "intake", "progress_pct": 5, "completed_stages": [],
-                "validation_metrics": None, "llm_risk_commentary": None, "artifact_paths": {},
-                "governance_status": "PENDING", "error_message": None,
-                "awaiting_approval": False, "next": ("intake",),
+                "run_id": run_id,
+                "status": "intake",
+                "progress_pct": 5,
+                "completed_stages": [],
+                "validation_metrics": None,
+                "llm_risk_commentary": None,
+                "artifact_paths": {},
+                "governance_status": "PENDING",
+                "error_message": None,
+                "awaiting_approval": False,
+                "next": ("intake",),
             }
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
@@ -267,11 +296,13 @@ def list_run_artifacts(run_id: str) -> dict:
     items: list[dict[str, Any]] = []
     for path in sorted(run_dir.glob("*")):
         if path.is_file():
-            items.append({
-                "name": path.name,
-                "size_bytes": path.stat().st_size,
-                "url": f"/runs/{run_id}/artifacts/{path.name}",
-            })
+            items.append(
+                {
+                    "name": path.name,
+                    "size_bytes": path.stat().st_size,
+                    "url": f"/runs/{run_id}/artifacts/{path.name}",
+                }
+            )
 
     return {"run_id": run_id, "artifacts": items}
 
@@ -297,4 +328,3 @@ def download_run_artifact(run_id: str, name: str):
         media_type = "application/octet-stream"
 
     return FileResponse(file_path, media_type=media_type, filename=name)
-

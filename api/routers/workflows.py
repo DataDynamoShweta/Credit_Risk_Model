@@ -153,7 +153,28 @@ def get_run_status(run_id: str) -> dict:
     config = {"configurable": {"thread_id": run_id}}
     snapshot = graph.get_state(config)
 
+    with _run_lock:
+        crash = next((e for e in reversed(_run_events.get(run_id, []))
+                      if e.get("stage") == "failed"), None)
+        known = run_id in _run_events
+
+    if crash:
+        # Graph raised before/while checkpointing: report a terminal failed state.
+        return {
+            "run_id": run_id, "status": "failed", "progress_pct": 100,
+            "completed_stages": (snapshot.values or {}).get("stages_completed", []) if snapshot else [],
+            "validation_metrics": None, "llm_risk_commentary": None, "artifact_paths": {},
+            "governance_status": "REJECTED", "error_message": crash["msg"],
+            "awaiting_approval": False, "next": (),
+        }
     if not snapshot or not snapshot.values:
+        if known:  # accepted but first checkpoint not written yet
+            return {
+                "run_id": run_id, "status": "intake", "progress_pct": 5, "completed_stages": [],
+                "validation_metrics": None, "llm_risk_commentary": None, "artifact_paths": {},
+                "governance_status": "PENDING", "error_message": None,
+                "awaiting_approval": False, "next": ("intake",),
+            }
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
 
     values = snapshot.values

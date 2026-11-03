@@ -517,7 +517,7 @@ footer{
           <div class="field"><label for="explain">Explainability</label>
             <select id="explain"><option>SHAP optional / auto-detect</option><option>Disabled</option><option>Require SHAP</option></select>
           </div>
-          <div class="field full"><label for="endpoint">Orchestrator API endpoint</label><input id="endpoint" value="http://localhost:8000/workflows/credit-risk/run"></div>
+          <div class="field full"><label for="endpoint">Orchestrator API endpoint</label><input id="endpoint" value="/workflows/credit-risk/run"></div>
         </div>
         <p class="notice">No credentials are requested here. Backend uses local .env for Azure OpenAI and API keys.</p>
       </div>
@@ -678,11 +678,19 @@ function setStage(idx,state){
   el.querySelector('.stage-num').textContent=state==='done'?'✓':String(idx+1).padStart(2,'0');
 }
 
+/* Resolve API base from the endpoint field; relative paths follow the page origin
+   (so the UI served by FastAPI always talks to the server that served it). */
+const RUN_PATH='/workflows/credit-risk/run';
+function apiBase(){
+  const v=($('#endpoint').value||'').trim()||RUN_PATH;
+  const origin=location.protocol.startsWith('http')?location.origin:'http://localhost:8000';
+  return new URL(v,origin).href.replace(/\/+$/,'').replace(RUN_PATH,'');
+}
 /* Check backend connectivity */
 async function checkBackend(){
   try{
-    const base = ($('#endpoint').value||'').replace('/workflows/credit-risk/run','');
-    const res = await fetch((base||'') + '/health');
+    const base = apiBase();
+    const res = await fetch(base + '/health');
     if(res.ok){
       $('#backendDot').style.background = 'var(--green)';
       $('#backendStatusText').textContent = 'Backend online';
@@ -708,7 +716,7 @@ async function startWorkflow(){
   $$('.stage').forEach((_, i)=>setStage(i, ''));
   $$('.agent').forEach(x=>x.querySelector('.status').textContent='Idle');
 
-  const endpointUrl = $('#endpoint').value.trim() || '/workflows/credit-risk/run';
+  const endpointUrl = apiBase() + RUN_PATH;
   const payload = {
     dataset: $('#dataset').value,
     target: $('#target').value,
@@ -743,7 +751,7 @@ async function startWorkflow(){
 
 async function pollRun(runId){
   if(!running || stopRequested) return;
-  const base = ($('#endpoint').value||'').replace('/workflows/credit-risk/run','');
+  const base = apiBase();
 
   try {
     /* 1. Fetch events */
@@ -809,7 +817,7 @@ async function pollRun(runId){
 }
 
 async function fetchArtifacts(runId){
-  const base = ($('#endpoint').value||'').replace('/workflows/credit-risk/run','');
+  const base = apiBase();
   try{
     const res = await fetch(`${base}/runs/${runId}/artifacts`);
     if(!res.ok) return;
@@ -831,7 +839,7 @@ async function fetchArtifacts(runId){
 
 async function sendGovernanceDecision(decision){
   if(!activeRunId) return;
-  const base = ($('#endpoint').value||'').replace('/workflows/credit-risk/run','');
+  const base = apiBase();
   try{
     log(`Submitting governance decision: ${decision}...`, 'info', 'GOVERNANCE');
     const res = await fetch(`${base}/workflows/credit-risk/${activeRunId}/approve`, {
@@ -874,7 +882,7 @@ async function fallbackSimulation(){
 
 /* Live applicant scoring */
 $('#scoreBtn').addEventListener('click', async () => {
-  const base = ($('#endpoint').value||'').replace('/workflows/credit-risk/run','');
+  const base = apiBase();
   const payload = {
     loan_amnt: Number($('#score_loan_amnt').value),
     int_rate: Number($('#score_int_rate').value),
